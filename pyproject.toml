@@ -1,0 +1,14 @@
+[tool.black]
+#skip-string-normalization = true
+include = '\.pyi?$'
+exclude = '''
+(
+  /(
+     \.git
+   | \.venv
+  )/
+  # don't rewrite generated files
+  | python-client/design.py
+  | protocol/openscout_pb2.py
+)
+'''

@@ -1,0 +1,8 @@
+*.iml
+.gradle/
+.idea/
+.venv/
+__pycache__/
+local.properties
+**/app/build/
+**/app/src/main/assets/

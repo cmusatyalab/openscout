@@ -1,0 +1,14 @@
+version: '2.3'
+services:
+  openscout:
+    image: cmusatyalab/openscout
+    ports:
+      - "9099:9099"
+    devices:
+      - "/dev/dri:/dev/dri"
+    restart: unless-stopped
+
+    # for NVIDIA GPUs
+    # gpus: all     # not yet supported by docker-compose
+    runtime: nvidia
+    privileged: true
