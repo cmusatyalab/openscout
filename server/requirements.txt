@@ -2,4 +2,5 @@ gabriel-server==0.0.9
 opencv-python>=3, <5
 tensorflow==1.15
 py-cpuinfo
-PIL
+Pillow
+tensorflow-object-detection-api==0.1.1

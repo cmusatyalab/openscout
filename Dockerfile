@@ -1,5 +1,5 @@
-FROM nvidia/cuda:10.1-devel-ubuntu18.04
-MAINTAINER Satyalab, satya-group@lists.andrew.cmu.edu
+FROM nvidia/cuda:10.0-cudnn7-devel-ubuntu18.04
+LABEL Satyalab, satya-group@lists.andrew.cmu.edu
 
 ARG DEBIAN_FRONTEND=noninteractive
 
@@ -17,16 +17,21 @@ RUN apt-get update && apt-get install -y \
     python3-pyqt5 \
  && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-# Install PyTorch and Gabriel's external dependencies
+#upgrade pip, otherwise tensorflow 1.15.0 will not be found
+RUN pip3 install --upgrade pip
+
+# Install Tensorflow and Gabriel's external dependencies
 RUN python3 -m pip install --no-cache-dir \
     'gabriel-client==0.0.4' \
+    'gabriel-protocol==0.0.2' \
     'gabriel-server==0.0.9' \
     'opencv-python<5' \
     protobuf \
     py-cpuinfo \
-    PyQt5 \
+    'PyQt5==5.14.0' \
     pyzmq \
-    websockets \
+    'setuptools==41.0.0' \
+    'websockets==8.0.0' \
     zmq 
 
 # You can speed up build slightly by reducing build context with
