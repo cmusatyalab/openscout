@@ -18,6 +18,8 @@
 #
 #
 
+import time
+import os
 import cv2
 import numpy as np
 import logging
@@ -29,7 +31,7 @@ import tensorflow as tf
 tf.compat.v1.enable_eager_execution() 
 from object_detection.utils import ops as utils_ops
 from object_detection.utils import label_map_util
-from object_detection.utils import visualization_utils as vis_util 
+from object_detection.utils import visualization_utils as vis_util
 
 #PATCHES
 # patch tf1 into `utils.ops`
@@ -48,11 +50,12 @@ logger = logging.getLogger(__name__)
 class TFPredictor():
     def __init__(self,model_path): 
         model_name = model_path+'/saved_model'
+
         label_map_file_path = model_path+'/label_map.pbtxt'
-        
+
         self.detection_model = self.load_model(model_name)
         self.category_index = label_map_util.create_category_index_from_labelmap(label_map_file_path, use_display_name=True) 
-
+        self.output_dict = None
         
     def load_model(self,model_dir):   
         model = tf.compat.v2.saved_model.load(export_dir=str(model_dir), tags=None)
@@ -67,7 +70,7 @@ class TFPredictor():
         input_tensor = input_tensor[tf.newaxis,...]
 
         # Run inference
-        output_dict = self.detection_model(input_tensor) 
+        output_dict = self.detection_model(input_tensor)
         num_detections = int(output_dict.pop('num_detections'))
         output_dict = {key:value[0, :num_detections].numpy() 
                          for key,value in output_dict.items()}
@@ -85,43 +88,57 @@ class TFPredictor():
           detection_masks_reframed = tf.cast(detection_masks_reframed > 0.5,
                                                tf.uint8)
           output_dict['detection_masks_reframed'] = detection_masks_reframed.numpy()
+
+        self.output_dict = output_dict
         return output_dict
 
-    def inferFile(self, image_file_path):     
-        image_np = np.array(Image.open(image_file_path))
-        results = self.infer(image_np)
+    def inferFile(self, image):
+        #image_np = np.array(Image.open(image_file_path))
+        results = self.infer(image)
         res_boxes = results['detection_boxes']
         res_classes = results['detection_classes']
-        res_scores = results['detection_scores'] 
-        return [res_classes,res_scores]
+        res_scores = results['detection_scores']
+        return res_classes,res_scores, res_boxes
     
-    def getMaxScoreClasses(self, res_scores, res_classes, min_score_thresh):
-        return_scores = []; return_classes = []  
+    def getMaxScoreClasses(self, res_scores, res_classes, res_boxes, min_score_thresh):
+        return_scores = []
+        return_classes = []
+        return_boxes = []
         for i in range(len(res_scores)): 
             if res_scores[i] > (min_score_thresh):
                 return_scores.append(res_scores[i])
-                return_classes.append(res_classes[i])   
+                return_classes.append(res_classes[i])
+                return_boxes.append(res_boxes[i])
             else:
                 break  
-        return [return_classes,return_scores]
+        return return_classes,return_scores, return_boxes
 
-    def runPredictor(self, image_path, min_score_thresh):  
-        [res_classes,res_scores] = self.inferFile(image_path) 
-        [classes,scores] = self.getMaxScoreClasses(res_scores, res_classes, min_score_thresh)  
-        if len(scores) > 0: return [self.category_index,classes,scores]
-        else: return None 
+    def runPredictor(self, image, min_score_thresh):
+        classes = None
+        scores = None
+        boxes = None
+        res_classes, res_scores, res_boxes = self.inferFile(image) 
+        classes, scores, boxes = self.getMaxScoreClasses(res_scores, res_classes, res_boxes, min_score_thresh)  
+        return self.category_index, classes, scores, boxes
 
 
 class OpenScoutEngine(cognitive_engine.Engine):
     ENGINE_NAME = "openscout"
 
-    def __init__(self, compression_params):
+    def __init__(self, compression_params, args):
         self.compression_params = compression_params
-        self.adapter = adapter
 
         # TODO support server display
+        self.detector = TFPredictor(args.model)
+        self.threshold = args.threshold
+        self.store_detections = args.store
+        logger.info("TensorFlowPredictor initialized with the following model path: {}".format(args.model))
+        logger.info("Confidence Threshold: {}".format(self.threshold))
+        if self.store_detections:
+            self.storage_path = os.getcwd()+"/images/"
+            os.mkdir(self.storage_path)
+            logger.info("Storing detection images at {}".format(self.storage_path))
 
-        logger.info("FINISHED INITIALISATION")
 
     def handle(self, from_client):
         if from_client.payload_type != gabriel_pb2.PayloadType.IMAGE:
@@ -131,40 +148,55 @@ class OpenScoutEngine(cognitive_engine.Engine):
             openscout_pb2.EngineFields, from_client
         )
 
-        image = self.process_image(from_client.payload)
+        classname_index, classes, scores, boxes, image_np = self.process_image(from_client.payload)
 
-        _, jpeg_img = cv2.imencode(".jpg", image, self.compression_params)
-        img_data = jpeg_img.tostring()
+        if len(classes) > 0:
+            result = gabriel_pb2.ResultWrapper.Result()
+            result.payload_type = gabriel_pb2.PayloadType.TEXT
+            result.engine_name = self.ENGINE_NAME
+            result_wrapper = gabriel_pb2.ResultWrapper()
+            result_wrapper.frame_id = from_client.frame_id
+            result_wrapper.status = gabriel_pb2.ResultWrapper.Status.SUCCESS
+            for i in range(0, len(classes)):
+                logger.info("Detected : {} - Score: {:.3f}".format(classname_index[classes[i]]['name'],scores[i]))
+                result.payload = "{} ({:.3f})".format(classname_index[classes[i]]['name'],scores[i]).encode(encoding="utf-8")
+                result_wrapper.results.append(result)
 
-        result = gabriel_pb2.ResultWrapper.Result()
-        result.payload_type = gabriel_pb2.PayloadType.TEXT
-        result.engine_name = self.ENGINE_NAME
-        result.payload = img_data
+            engine_fields = openscout_pb2.EngineFields()
+            result_wrapper.engine_fields.Pack(engine_fields)
 
-        engine_fields = openscout_pb2.EngineFields()
+            if self.store_detections:
+                vis_util.visualize_boxes_and_labels_on_image_array(
+                    image_np,
+                    np.squeeze(self.detector.output_dict['detection_boxes']),
+                    np.squeeze(self.detector.output_dict['detection_classes']),
+                    np.squeeze(self.detector.output_dict['detection_scores']),
+                    classname_index,
+                    use_normalized_coordinates=True,
+                    line_thickness=4)
+                path = self.storage_path + str(time.time()) + ".png"
+                logger.info("Stored image: {}".format(path))
+                Image.fromarray(image_np).save(path)
 
-        result_wrapper = gabriel_pb2.ResultWrapper()
-        result_wrapper.frame_id = from_client.frame_id
-        result_wrapper.status = gabriel_pb2.ResultWrapper.Status.SUCCESS
-        result_wrapper.results.append(result)
-        result_wrapper.engine_fields.Pack(engine_fields)
+        else:
+            result_wrapper = gabriel_pb2.ResultWrapper()
+            result_wrapper.frame_id = from_client.frame_id
+            result_wrapper.status = gabriel_pb2.ResultWrapper.Status.SUCCESS
+            result_wrapper.engine_fields.Pack(engine_fields)
 
         return result_wrapper
 
     def process_image(self, image):
-
-        # Preprocessing steps used by both engines
         np_data = np.fromstring(image, dtype=np.uint8)
         img = cv2.imdecode(np_data, cv2.IMREAD_COLOR)
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
-        preprocessed = self.adapter.preprocessing(img)
-        post_inference = self.inference(preprocessed)
-        img_out = self.adapter.postprocessing(post_inference)
-        return img_out
+        #preprocessed = self.adapter.preprocessing(img)
+        classname_index, classes, scores, boxes = self.inference(img)
+        #img_out = self.adapter.postprocessing(post_inference)
+        return classname_index, classes, scores, boxes, img
 
-    def inference(self, preprocessed):
+    def inference(self, img):
         """Allow timing engine to override this"""
-        return self.adapter.inference(preprocessed)
+        return self.detector.runPredictor(img, self.threshold)
 
-        return img_out
