@@ -11,7 +11,6 @@
         android:layout_height="match_parent"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toStartOf="@+id/guideline"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="0.0" />
 
@@ -43,7 +42,7 @@
         android:tint="@color/colorPrimary"
         android:visibility="visible"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@+id/guideline" />
+        app:layout_constraintEnd_toEndOf="parent" />
 
     <ImageView
         android:id="@+id/imgSwitchCam"
@@ -56,13 +55,13 @@
         android:src="@drawable/ic_baseline_camera_front_24px"
         android:tint="@color/colorPrimary"
         android:visibility="gone"
-        app:layout_constraintEnd_toEndOf="@+id/guideline"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
     <ImageView
         android:id="@+id/imgRotate"
-        android:layout_width="286dp"
-        android:layout_height="112dp"
+        android:layout_width="@android:dimen/notification_large_icon_width"
+        android:layout_height="@android:dimen/notification_large_icon_height"
         android:layout_gravity="top|end"
         android:elevation="@dimen/activity_vertical_margin"
         android:focusable="false"
@@ -78,32 +77,29 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="top|right"
-        android:background="@color/navigationBarColor"
+        android:background="@color/transparent"
         android:text="FPS: 0"
         android:textColor="@color/colorPrimary"
         android:textSize="18sp"
         android:textStyle="bold"
         android:visibility="gone"
-        app:layout_constraintTop_toBottomOf="@+id/imgSwitchCam"
-        app:layout_constraintEnd_toStartOf="@+id/guideline" />
-
-    <androidx.constraintlayout.widget.Guideline
-        android:id="@+id/guideline"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        app:layout_constraintGuide_end="200dp" />
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/imgSwitchCam" />
 
     <EditText
         android:id="@+id/resultsText"
         android:layout_width="0dp"
-        android:layout_height="match_parent"
-        android:background="#000000"
+        android:layout_height="128dp"
+        android:alpha="1"
+        android:background="#41000000"
+        android:enabled="true"
         android:fontFamily="monospace"
-        android:gravity="top|left"
+        android:gravity="start|top"
+        android:hint="Detection results will appear here."
+        android:inputType="textMultiLine|textNoSuggestions"
         android:scrollbarAlwaysDrawVerticalTrack="true"
-        android:scrollbarStyle="insideInset"
-        android:text="This is the text"
+        android:scrollbarStyle="insideOverlay"
+        android:scrollbars="vertical"
         android:textAlignment="viewStart"
         android:textAllCaps="false"
         android:textColor="@color/colorPrimary"
@@ -111,8 +107,11 @@
         android:textColorHint="@android:color/holo_green_light"
         android:textColorLink="@android:color/holo_green_light"
         android:textSize="12sp"
+        android:textStyle="bold"
         android:verticalScrollbarPosition="right"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toEndOf="@+id/camera_preview" />
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/imgRecord"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

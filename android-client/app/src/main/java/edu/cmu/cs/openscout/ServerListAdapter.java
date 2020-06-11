@@ -81,7 +81,7 @@ public class ServerListAdapter extends BaseAdapter {
                     Server s = itemModelList.get(position);
                     Const.SERVER_IP = s.getEndpoint();
                     Intent intent = new Intent(
-                            context, ServerListAdapter.this.gabrielClientActivityClass());
+                            context, GabrielClientActivity.class);
                     intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                     //intent.putExtra("", faceTable);
                     context.startActivity(intent);

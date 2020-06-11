@@ -17,4 +17,5 @@ package edu.cmu.cs.gabriel.network;
 public class NetworkProtocol {
     public static final int NETWORK_RET_FAILED = 1;
     public static final int NETWORK_RET_IMAGE = 2;
+    public static final int NETWORK_RET_TEXT = 3;
 }

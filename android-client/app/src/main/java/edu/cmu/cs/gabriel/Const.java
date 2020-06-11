@@ -59,11 +59,8 @@ public class Const {
 
     // image size and frame rate
     public static int CAPTURE_FPS = 30;
-    // options: 320x180, 640x360, 1280x720, 1920x1080
-    //public static int IMAGE_WIDTH = 640;
-    //public static int IMAGE_HEIGHT = 480;
-    public static int IMAGE_WIDTH = 320;
-    public static int IMAGE_HEIGHT = 240;
+    public static int IMAGE_WIDTH = 640;
+    public static int IMAGE_HEIGHT = 480;
 
 
     public static final String GABRIEL_CONFIGURATION_SYNC_STATE = "syncState";

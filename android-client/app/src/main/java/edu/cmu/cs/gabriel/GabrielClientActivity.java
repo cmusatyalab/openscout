@@ -61,6 +61,7 @@ import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.net.Uri;
 import android.media.MediaActionSound;
+import android.text.method.ScrollingMovementMethod;
 
 import edu.cmu.cs.gabriel.network.EngineInput;
 import edu.cmu.cs.gabriel.network.FrameSupplier;
@@ -121,7 +122,7 @@ public class GabrielClientActivity extends Activity implements TextureView.Surfa
     private boolean imageRotate = false;
     private TextView fpsLabel = null;
 
-    private int framesProcessed = 0;
+    private int detections = 0;
     private EngineInput engineInput;
     final private Object engineInputLock = new Object();
     private FrameSupplier frameSupplier = new FrameSupplier(this);
@@ -202,6 +203,9 @@ public class GabrielClientActivity extends Activity implements TextureView.Surfa
                 WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         resultsView = (TextView) findViewById(R.id.resultsText);
+        resultsView.setFocusableInTouchMode(false);
+        resultsView.clearFocus();
+        resultsView.setMovementMethod(new ScrollingMovementMethod());
         fpsLabel = (TextView) findViewById(R.id.fpsLabel);
 
 
@@ -375,6 +379,7 @@ public class GabrielClientActivity extends Activity implements TextureView.Surfa
         Log.v(LOG_TAG, "++onDestroy");
         if(capturingScreen)
             stopRecording();
+
         super.onDestroy();
     }
 
@@ -661,10 +666,9 @@ public class GabrielClientActivity extends Activity implements TextureView.Surfa
                     fpsLabel.setVisibility(View.VISIBLE);
 
                 }
-                String msg= "FPS: " + framesProcessed;
+                String msg= "Detections: " + detections;
                 fpsLabel.setText( msg );
             }
-            framesProcessed=0;
             fpsHandler.postDelayed(this, 1000);
         }
     };
@@ -694,9 +698,20 @@ public class GabrielClientActivity extends Activity implements TextureView.Surfa
                 }
 
             }
+            if (msg.what ==  NetworkProtocol.NETWORK_RET_TEXT) {
+                String result = (String) msg.obj;
+                resultsView = (TextView) findViewById(R.id.resultsText);
+                String prev = resultsView.getText().toString();
+                StringBuilder sb = new StringBuilder();
+                sb.append(result);
+                sb.append("\n");
+                sb.append(prev);
+                detections++;
+                resultsView.setText(sb.toString());
+            }
             if (msg.what == NetworkProtocol.NETWORK_RET_IMAGE) {
-                //Bitmap feedbackImg = (Bitmap) msg.obj;
-                framesProcessed++;
+                Bitmap feedbackImg = (Bitmap) msg.obj;
+
             }
         }
     };

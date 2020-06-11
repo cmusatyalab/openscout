@@ -60,8 +60,25 @@ public class BaseComm {
                     e.printStackTrace();
                 }
 
-                if (result.getPayloadType() != PayloadType.IMAGE) {
+                Message msg = Message.obtain();
+
+                if (result.getPayloadType() == PayloadType.IMAGE) {
                     Log.e(TAG, "Got result of type " + result.getPayloadType().name());
+                    ByteString dataString = result.getPayload();
+
+                    Bitmap imageFeedback = BitmapFactory.decodeByteArray(
+                            dataString.toByteArray(), 0, dataString.size());
+
+
+                    msg.what = NetworkProtocol.NETWORK_RET_IMAGE;
+                    msg.obj = imageFeedback;
+                } else if (result.getPayloadType() == PayloadType.TEXT) {
+                    ByteString dataString = result.getPayload();
+                    String results = dataString.toStringUtf8();
+
+                    msg.what = NetworkProtocol.NETWORK_RET_TEXT;
+                    msg.obj = results;
+                } else {
                     return;
                 }
 
@@ -70,14 +87,7 @@ public class BaseComm {
                     return;
                 }
 
-                ByteString dataString = result.getPayload();
 
-                Bitmap imageFeedback = BitmapFactory.decodeByteArray(
-                        dataString.toByteArray(), 0, dataString.size());
-
-                Message msg = Message.obtain();
-                msg.what = NetworkProtocol.NETWORK_RET_IMAGE;
-                msg.obj = imageFeedback;
                 returnMsgHandler.sendMessage(msg);
             }
         };
