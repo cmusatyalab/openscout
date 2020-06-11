@@ -55,15 +55,26 @@ def main():
     parser.add_argument(
         "-p", "--port", type=int, default=DEFAULT_PORT, help="Set port number"
     )
+
+    parser.add_argument(
+        "-m", "--model", default="./model/tank_uni", help="Path to directory containing TPOD model"
+    )
+
+    parser.add_argument(
+        "-r", "--threshold", type=float, default=0.85, help="Confidence threshold"
+    )
+
+    parser.add_argument(
+        "-s", "--store", action="store_true", default=True, help="Store images with detections"
+    )
+
     args = parser.parse_args()
 
     def engine_setup():
-        adapter = create_adapter(args.openvino, args.cpu_only, args.torch, args.myriad)
-
         if args.timing:
-            engine = TimingEngine(COMPRESSION_PARAMS, adapter)
+            engine = TimingEngine(COMPRESSION_PARAMS, args)
         else:
-            engine = OpenScoutEngine(COMPRESSION_PARAMS, adapter)
+            engine = OpenScoutEngine(COMPRESSION_PARAMS, args)
 
         return engine
 

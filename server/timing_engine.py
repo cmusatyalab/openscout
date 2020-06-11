@@ -3,8 +3,8 @@ import time
 
 
 class TimingEngine(OpenScoutEngine):
-    def __init__(self, compression_params):
-        super().__init__(compression_params)
+    def __init__(self, compression_params, args):
+        super().__init__(compression_params, args )
         self.count = 0
         self.lasttime = time.time()
         self.lastcount = 0
@@ -37,7 +37,7 @@ class TimingEngine(OpenScoutEngine):
 
     def inference(self, preprocessed):
         self.t1 = time.time()
-        result = super().inference(preprocessed)
+        results = super().inference(preprocessed)
         self.t2 = time.time()
 
-        return result
+        return results
