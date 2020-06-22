@@ -22,9 +22,6 @@ RUN pip3 install --upgrade pip
 
 # Install Tensorflow and Gabriel's external dependencies
 RUN python3 -m pip install --no-cache-dir \
-    'gabriel-client==0.0.4' \
-    'gabriel-protocol==0.0.2' \
-    'gabriel-server==0.0.9' \
     'opencv-python<5' \
     protobuf \
     py-cpuinfo \
