@@ -1,6 +1,10 @@
-gabriel-server==0.0.9
+gabriel-server==0.1.6
 opencv-python>=3, <5
-tensorflow==1.15
 py-cpuinfo
+#required for TPOD object detection
 Pillow
 tensorflow-object-detection-api==0.1.1
+tensorflow==1.15
+#required for MS Face Cognitive Service
+azure-cognitiveservices-vision-face
+asyncio

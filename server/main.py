@@ -18,9 +18,11 @@
 #   limitations under the License.
 #
 #
-from gabriel_server.local_engine import runner
-from openscout_engine import OpenScoutEngine
-from timing_engine import TimingEngine
+from network_engine import engine_runner
+from network_engine import server_runner 
+from openscout_object_engine import OpenScoutObjectEngine
+from openscout_face_engine import OpenScoutFaceEngine
+from timing_engine import TimingFaceEngine, TimingObjectEngine
 import logging
 import cv2
 import argparse
@@ -57,7 +59,7 @@ def main():
     )
 
     parser.add_argument(
-        "-m", "--model", default="./model/tank_uni", help="Path to directory containing TPOD model"
+        "-m", "--model", default="./model/tank_uni", help="(OBJECT DETECTION) Path to directory containing TPOD model (default=./model/tank_uni)"
     )
 
     parser.add_argument(
@@ -68,24 +70,38 @@ def main():
         "-s", "--store", action="store_true", default=True, help="Store images with detections"
     )
 
+    parser.add_argument(
+        "--endpoint", default="http://localhost:5000", help="(FACE DETECTION) Endpoint for the Face cognitive service (default=localhost:5000)"
+    )
+
+    parser.add_argument(
+        "--apikey",  help="(FACE DETECTION) API key for cognitive service. Required for metering."
+    )
+
     args = parser.parse_args()
 
-    def engine_setup():
+    def object_engine_setup():
         if args.timing:
-            engine = TimingEngine(COMPRESSION_PARAMS, args)
+            engine = TimingObjectEngine(COMPRESSION_PARAMS, args)
         else:
-            engine = OpenScoutEngine(COMPRESSION_PARAMS, args)
+            engine = OpenScoutObjectEngine(COMPRESSION_PARAMS, args)
 
         return engine
 
-    runner.run(
-        engine_setup,
-        OpenScoutEngine.ENGINE_NAME,
-        INPUT_QUEUE_MAXSIZE,
-        args.port,
-        args.tokens,
-    )
+    def face_engine_setup():
+        if args.timing:
+            engine = TimingFaceEngine(COMPRESSION_PARAMS, args)
+        else:
+            engine = OpenScoutFaceEngine(COMPRESSION_PARAMS, args)
 
+        return engine
+
+    server_runner.run(websocket_port=DEFAULT_PORT, zmq_address='tcp://*:5555', num_tokens=DEFAULT_NUM_TOKENS,
+                  input_queue_maxsize=INPUT_QUEUE_MAXSIZE)
+
+    engine_runner.run(engine=face_engine_setup, filter_name=OpenScoutFaceEngine.ENGINE_NAME, server_address='tcp://localhost:5555')
+
+    engine_runner.run(engine=object_engine_setup, filter_name=OpenScoutObjectEngine.ENGINE_NAME, server_address='tcp://localhost:5555')
 
 if __name__ == "__main__":
     main()
