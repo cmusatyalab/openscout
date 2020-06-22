@@ -122,8 +122,8 @@ class TFPredictor():
         return self.category_index, classes, scores, boxes
 
 
-class OpenScoutEngine(cognitive_engine.Engine):
-    ENGINE_NAME = "openscout"
+class OpenScoutObjectEngine(cognitive_engine.Engine):
+    ENGINE_NAME = "openscout-object"
 
     def __init__(self, compression_params, args):
         self.compression_params = compression_params
@@ -157,10 +157,12 @@ class OpenScoutEngine(cognitive_engine.Engine):
             result_wrapper = gabriel_pb2.ResultWrapper()
             result_wrapper.frame_id = from_client.frame_id
             result_wrapper.status = gabriel_pb2.ResultWrapper.Status.SUCCESS
+            r = ""
             for i in range(0, len(classes)):
                 logger.info("Detected : {} - Score: {:.3f}".format(classname_index[classes[i]]['name'],scores[i]))
-                result.payload = "{} ({:.3f})".format(classname_index[classes[i]]['name'],scores[i]).encode(encoding="utf-8")
-                result_wrapper.results.append(result)
+                r += "Detected {} ({:.3f})\n".format(classname_index[classes[i]]['name'],scores[i]).encode(encoding="utf-8")    
+            result.payload = r
+            result_wrapper.results.append(result)
 
             engine_fields = openscout_pb2.EngineFields()
             result_wrapper.engine_fields.Pack(engine_fields)
