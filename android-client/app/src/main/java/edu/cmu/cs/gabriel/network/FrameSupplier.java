@@ -35,7 +35,8 @@ import edu.cmu.cs.gabriel.client.function.Supplier;
 
 public class FrameSupplier implements Supplier<FromClient.Builder> {
 
-    private static String ENGINE_NAME = "openscout";
+    //private static String ENGINE_NAME = "openscout-object";
+    private static String ENGINE_NAME = "openscout-face";
 
     private GabrielClientActivity gabrielClientActivity;
 
@@ -81,7 +82,7 @@ public class FrameSupplier implements Supplier<FromClient.Builder> {
         EngineFields engineFields = engineFieldsBuilder.build();
 
         // TODO: Switch to this once MobilEdgeX supports protobuf-javalite:
-        // fromClientBuilder.setEngineFields(Any.pack(engineFields));
+        //fromClientBuilder.setEngineFields(Any.pack(engineFields));
         fromClientBuilder.setEngineFields(FrameSupplier.pack(engineFields));
 
         return fromClientBuilder;

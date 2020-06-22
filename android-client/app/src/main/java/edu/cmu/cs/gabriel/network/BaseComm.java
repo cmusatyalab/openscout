@@ -35,7 +35,8 @@ import edu.cmu.cs.openscout.R;
 
 public class BaseComm {
     private static String TAG = "OpenScoutComm";
-    private static String ENGINE_NAME = "openscout";
+    //private static String ENGINE_NAME = "openscout-object";
+    private static String ENGINE_NAME = "openscout-face";
 
     ServerCommCore serverCommCore;
     Consumer<ResultWrapper> consumer;
