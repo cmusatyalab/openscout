@@ -4,8 +4,8 @@ import time
 
 
 class TimingFaceEngine(OpenScoutFaceEngine):
-    def __init__(self, compression_params, args):
-        super().__init__(compression_params, args )
+    def __init__(self, args):
+        super().__init__(args )
         self.count = 0
         self.lasttime = time.time()
         self.lastcount = 0
@@ -51,8 +51,8 @@ class TimingFaceEngine(OpenScoutFaceEngine):
         return results
 
 class TimingObjectEngine(OpenScoutObjectEngine):
-    def __init__(self, compression_params, args):
-        super().__init__(compression_params, args )
+    def __init__(self, args):
+        super().__init__(args )
         self.count = 0
         self.lasttime = time.time()
         self.lastcount = 0

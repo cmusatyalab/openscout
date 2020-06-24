@@ -46,7 +46,7 @@ logger.setLevel(logging.INFO)
 class OpenScoutFaceEngine(cognitive_engine.Engine):
     ENGINE_NAME = "openscout-face"
     PERSON_GROUP_ID = "known-persons"
-    def __init__(self, compression_params, args):
+    def __init__(self, args):
         self.apikey = args.apikey
         self.endpoint = args.endpoint
         self.threshold = args.threshold

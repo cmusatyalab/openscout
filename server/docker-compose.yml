@@ -1,14 +1,70 @@
+
+# The environment variables such as ${API_KEY} should
+# reside in a .env file along side docker-compose.yaml
+# and should look similar to the following:
+#
+# #ms-face-service
+# BILLING_ENDPOINT=<URI from Azure>
+# API_KEY=<ApiKey from Azure>
+# #object-engine
+# OBJ_THRESHOLD=0.7
+# #face-engine
+# FACE_THRESHOLD=0.7
+
 version: '2.3'
 services:
-  openscout:
+  gabriel-server:
     image: cmusatyalab/openscout
+    container_name: gabriel-server
     ports:
       - "9099:9099"
-    devices:
-      - "/dev/dri:/dev/dri"
+      - "5555:5555"
+    entrypoint: ["./main.py"]
     restart: unless-stopped
+    networks:
+      - openscout-net
 
+  face-engine:
+    image: cmusatyalab/openscout
+    container_name: openscout-face-engine
+    restart: unless-stopped
+    privileged: true
+    entrypoint: ["./face.py", "--apikey", "${API_KEY}", "--threshold", "${FACE_THRESHOLD}"]
+    depends_on:
+      - gabriel-server
+      - ms-face-service
+    networks:
+      - openscout-net
+
+  object-engine:
+    image: cmusatyalab/openscout
+    container_name: openscout-object-engine
+    restart: unless-stopped
+    privileged: true
+    entrypoint: ["./obj.py"]
     # for NVIDIA GPUs
     # gpus: all     # not yet supported by docker-compose
     runtime: nvidia
-    privileged: true
+    depends_on:
+      - gabriel-server
+    networks:
+      - openscout-net
+
+  ms-face-service:
+    image: containerpreview.azurecr.io/microsoft/cognitive-services-face
+    container_name: ms-face-service
+    ports:
+      - "5000:5000"
+    networks:
+      - openscout-net
+    cpus: '1.0'
+    mem_reservation: 4gb
+    environment:
+      - Eula=accept
+      - Billing=${BILLING_ENDPOINT}
+      - ApiKey=${API_KEY}
+networks:
+  openscout-net:
+
+volumes:
+  openscout-vol:

@@ -18,10 +18,7 @@
 #   limitations under the License.
 #
 #
-from gabriel_server.network_engine import engine_runner, server_runner
-from openscout_object_engine import OpenScoutObjectEngine
-from openscout_face_engine import OpenScoutFaceEngine
-from timing_engine import TimingFaceEngine, TimingObjectEngine
+from gabriel_server.network_engine import server_runner
 import logging
 import time
 import cv2
@@ -31,7 +28,6 @@ import importlib
 DEFAULT_PORT = 9099
 DEFAULT_NUM_TOKENS = 2
 INPUT_QUEUE_MAXSIZE = 60
-COMPRESSION_PARAMS = [cv2.IMWRITE_JPEG_QUALITY, 67]
 SOURCE = 'openscout'
 
 logging.basicConfig(level=logging.INFO)
@@ -46,43 +42,19 @@ def main():
     parser.add_argument(
         "-t", "--tokens", type=int, default=DEFAULT_NUM_TOKENS, help="number of tokens"
     )
-    parser.add_argument(
-        "-c",
-        "--cpu-only",
-        action="store_true",
-        help="Pass this flag to prevent the GPU from being used.",
-    )
-    parser.add_argument(
-        "--timing", action="store_true", help="Print timing information"
-    )
+ 
     parser.add_argument(
         "-p", "--port", type=int, default=DEFAULT_PORT, help="Set port number"
     )
 
     parser.add_argument(
-        "-m", "--model", default="./model/tank_uni", help="(OBJECT DETECTION) Path to directory containing TPOD model (default=./model/tank_uni)"
+        "-q", "--queue", type=int, default=INPUT_QUEUE_MAXSIZE, help="Max input queue size"
     )
+ 
+    args, _ = parser.parse_known_args()
 
-    parser.add_argument(
-        "-r", "--threshold", type=float, default=0.85, help="Confidence threshold"
-    )
-
-    parser.add_argument(
-        "-s", "--store", action="store_true", default=True, help="Store images with detections"
-    )
-
-    parser.add_argument(
-        "--endpoint", default="http://localhost:5000", help="(FACE DETECTION) Endpoint for the Face cognitive service (default=localhost:5000)"
-    )
-
-    parser.add_argument(
-        "--apikey",  help="(FACE DETECTION) API key for cognitive service. Required for metering."
-    )
-
-    args = parser.parse_args()
-
-    server_runner.run(websocket_port=DEFAULT_PORT, zmq_address='tcp://*:5555', num_tokens=DEFAULT_NUM_TOKENS,
-                  input_queue_maxsize=INPUT_QUEUE_MAXSIZE)
+    server_runner.run(websocket_port=args.port, zmq_address='tcp://*:5555', num_tokens=args.tokens,
+                  input_queue_maxsize=args.queue)
 
 if __name__ == "__main__":
     main()

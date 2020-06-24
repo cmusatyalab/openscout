@@ -124,10 +124,7 @@ class TFPredictor():
 class OpenScoutObjectEngine(cognitive_engine.Engine):
     ENGINE_NAME = "openscout-object"
 
-    def __init__(self, compression_params, args):
-        self.compression_params = compression_params
-
-        # TODO support server display
+    def __init__(self, args):
         self.detector = TFPredictor(args.model)
         self.threshold = args.threshold
         self.store_detections = args.store

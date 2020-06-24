@@ -18,19 +18,15 @@
 #   limitations under the License.
 #
 #
-from gabriel_server.network_engine import engine_runner, server_runner
+from gabriel_server.network_engine import engine_runner
 from openscout_object_engine import OpenScoutObjectEngine
-from openscout_face_engine import OpenScoutFaceEngine
-from timing_engine import TimingFaceEngine, TimingObjectEngine
+from timing_engine import TimingObjectEngine
 import logging
 import time
 import cv2
 import argparse
 import importlib
 
-DEFAULT_PORT = 9099
-DEFAULT_NUM_TOKENS = 2
-INPUT_QUEUE_MAXSIZE = 60
 COMPRESSION_PARAMS = [cv2.IMWRITE_JPEG_QUALITY, 67]
 SOURCE = 'openscout'
 
@@ -43,20 +39,20 @@ def main():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
-    parser.add_argument(
-        "-t", "--tokens", type=int, default=DEFAULT_NUM_TOKENS, help="number of tokens"
-    )
+
     parser.add_argument(
         "-c",
         "--cpu-only",
         action="store_true",
         help="Pass this flag to prevent the GPU from being used.",
     )
+
     parser.add_argument(
         "--timing", action="store_true", help="Print timing information"
     )
+
     parser.add_argument(
-        "-p", "--port", type=int, default=DEFAULT_PORT, help="Set port number"
+        "-p", "--port", type=int, default=9099, help="Set port number"
     )
 
     parser.add_argument(
@@ -72,25 +68,21 @@ def main():
     )
 
     parser.add_argument(
-        "--endpoint", default="http://localhost:5000", help="(FACE DETECTION) Endpoint for the Face cognitive service (default=localhost:5000)"
+        "-g", "--gabriel",  default="tcp://gabriel-server:5555", help="Gabriel server endpoint."
     )
 
-    parser.add_argument(
-        "--apikey",  help="(FACE DETECTION) API key for cognitive service. Required for metering."
-    )
-
-    args = parser.parse_args()
+    args, _ = parser.parse_known_args()
 
     def object_engine_setup():
         if args.timing:
-            engine = TimingObjectEngine(COMPRESSION_PARAMS, args)
+            engine = TimingObjectEngine(args)
         else:
-            engine = OpenScoutObjectEngine(COMPRESSION_PARAMS, args)
+            engine = OpenScoutObjectEngine(args)
 
         return engine
 
     logger.info("Starting object detection cognitive engine..")
-    engine_runner.run(engine=object_engine_setup(), filter_name=SOURCE, server_address='tcp://localhost:5555')
+    engine_runner.run(engine=object_engine_setup(), filter_name=SOURCE, server_address=args.gabriel)
 
 if __name__ == "__main__":
     main()
