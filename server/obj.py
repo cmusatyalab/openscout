@@ -68,7 +68,7 @@ def main():
     )
 
     parser.add_argument(
-        "-s", "--store", action="store_true", default=True, help="Store images with detections"
+        "-s", "--store", action="store_true", default=True, help="Store images with bounding boxes"
     )
 
     parser.add_argument(
@@ -81,8 +81,16 @@ def main():
 
     args = parser.parse_args()
 
-    server_runner.run(websocket_port=DEFAULT_PORT, zmq_address='tcp://*:5555', num_tokens=DEFAULT_NUM_TOKENS,
-                  input_queue_maxsize=INPUT_QUEUE_MAXSIZE)
+    def object_engine_setup():
+        if args.timing:
+            engine = TimingObjectEngine(COMPRESSION_PARAMS, args)
+        else:
+            engine = OpenScoutObjectEngine(COMPRESSION_PARAMS, args)
+
+        return engine
+
+    logger.info("Starting object detection cognitive engine..")
+    engine_runner.run(engine=object_engine_setup(), filter_name=SOURCE, server_address='tcp://localhost:5555')
 
 if __name__ == "__main__":
     main()

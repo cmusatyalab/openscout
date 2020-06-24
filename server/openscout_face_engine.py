@@ -40,7 +40,7 @@ from msrest.authentication import CognitiveServicesCredentials
 from azure.cognitiveservices.vision.face.models import TrainingStatusType, Person, SnapshotObjectType, OperationStatusType, APIErrorException
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 
 class OpenScoutFaceEngine(cognitive_engine.Engine):
@@ -64,7 +64,10 @@ class OpenScoutFaceEngine(cognitive_engine.Engine):
         logger.info("Confidence Threshold: {}".format(self.threshold))
         if self.store_detections:
             self.storage_path = os.getcwd()+"/images/"
-            os.mkdir(self.storage_path)
+            try:
+                os.mkdir(self.storage_path)
+            except FileExistsError:
+                logger.info("Images directory already exists.")
             logger.info("Storing detection images at {}".format(self.storage_path))
 
     def train(self):
@@ -136,11 +139,7 @@ class OpenScoutFaceEngine(cognitive_engine.Engine):
         if from_client.payload_type != gabriel_pb2.PayloadType.IMAGE:
             return cognitive_engine.wrong_input_format_error(from_client.frame_id)
 
-        engine_fields = cognitive_engine.unpack_engine_fields(
-            openscout_pb2.EngineFields, from_client
-        )
-
-        image = self.preprocess_image(from_client.payload)
+        image = self.preprocess_image(from_client.payloads_for_frame[0])
 
         detections = self.detection(image)
 
@@ -148,7 +147,12 @@ class OpenScoutFaceEngine(cognitive_engine.Engine):
         for face in detections:
             face_ids.append(face.face_id)
         
-        result_wrapper = None
+        result_wrapper = gabriel_pb2.ResultWrapper()
+        result_wrapper.result_producer_name.value = self.ENGINE_NAME
+        result_wrapper.filter_passed = 'openscout'
+        result_wrapper.frame_id = from_client.frame_id
+        result_wrapper.status = gabriel_pb2.ResultWrapper.Status.SUCCESS
+
         if len(face_ids) > 0:
             logger.debug('Detected {} faces. Attempting recognition...'.format(len(face_ids)))
             # Identify faces
@@ -162,15 +166,8 @@ class OpenScoutFaceEngine(cognitive_engine.Engine):
 
                         result = gabriel_pb2.ResultWrapper.Result()
                         result.payload_type = gabriel_pb2.PayloadType.TEXT
-                        result.engine_name = self.ENGINE_NAME
-                        result_wrapper = gabriel_pb2.ResultWrapper()
-                        result_wrapper.frame_id = from_client.frame_id
-                        result_wrapper.status = gabriel_pb2.ResultWrapper.Status.SUCCESS
                         result.payload = 'Recognized {} ({:.3f})'.format(match.name,  person.candidates[0].confidence).encode(encoding="utf-8")
                         result_wrapper.results.append(result)
-
-                        engine_fields = openscout_pb2.EngineFields()
-                        result_wrapper.engine_fields.Pack(engine_fields)
 
                         if self.store_detections:
                             bb_img = Image.open(image)
@@ -184,14 +181,6 @@ class OpenScoutFaceEngine(cognitive_engine.Engine):
                     logger.debug('Confidence did not exceed threshold.')
                 else:
                     logger.debug('No faces recognized from person group.')
-
-        #if there was no match for any reason, return an empty result
-        if result_wrapper is None:
-            result_wrapper = gabriel_pb2.ResultWrapper()
-            result_wrapper.frame_id = from_client.frame_id
-            result_wrapper.status = gabriel_pb2.ResultWrapper.Status.SUCCESS
-            result_wrapper.engine_fields.Pack(engine_fields)
-
         return result_wrapper
 
     def preprocess_image(self, image):

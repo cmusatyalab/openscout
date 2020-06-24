@@ -46,7 +46,6 @@ tf.get_logger().setLevel('ERROR')
 
 logger = logging.getLogger(__name__)
 
-
 class TFPredictor():
     def __init__(self,model_path): 
         model_name = model_path+'/saved_model'
@@ -136,7 +135,10 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
         logger.info("Confidence Threshold: {}".format(self.threshold))
         if self.store_detections:
             self.storage_path = os.getcwd()+"/images/"
-            os.mkdir(self.storage_path)
+            try:
+                os.mkdir(self.storage_path)
+            except FileExistsError:
+                logger.info("Images directory already exists.")
             logger.info("Storing detection images at {}".format(self.storage_path))
 
 
@@ -144,28 +146,26 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
         if from_client.payload_type != gabriel_pb2.PayloadType.IMAGE:
             return cognitive_engine.wrong_input_format_error(from_client.frame_id)
 
-        engine_fields = cognitive_engine.unpack_engine_fields(
-            openscout_pb2.EngineFields, from_client
-        )
+        classname_index, classes, scores, boxes, image_np = self.process_image(from_client.payloads_for_frame[0])
 
-        classname_index, classes, scores, boxes, image_np = self.process_image(from_client.payload)
+        result_wrapper = gabriel_pb2.ResultWrapper()
+        result_wrapper.result_producer_name.value = self.ENGINE_NAME
+        result_wrapper.filter_passed = 'openscout'
+        result_wrapper.frame_id = from_client.frame_id
+        result_wrapper.status = gabriel_pb2.ResultWrapper.Status.SUCCESS
 
         if len(classes) > 0:
             result = gabriel_pb2.ResultWrapper.Result()
             result.payload_type = gabriel_pb2.PayloadType.TEXT
-            result.engine_name = self.ENGINE_NAME
-            result_wrapper = gabriel_pb2.ResultWrapper()
-            result_wrapper.frame_id = from_client.frame_id
-            result_wrapper.status = gabriel_pb2.ResultWrapper.Status.SUCCESS
+
             r = ""
             for i in range(0, len(classes)):
                 logger.info("Detected : {} - Score: {:.3f}".format(classname_index[classes[i]]['name'],scores[i]))
-                r += "Detected {} ({:.3f})\n".format(classname_index[classes[i]]['name'],scores[i]).encode(encoding="utf-8")    
-            result.payload = r
+                if i > 0:
+                    r += ", "
+                r += "Detected {} ({:.3f})".format(classname_index[classes[i]]['name'],scores[i])
+            result.payload = r.encode(encoding="utf-8")
             result_wrapper.results.append(result)
-
-            engine_fields = openscout_pb2.EngineFields()
-            result_wrapper.engine_fields.Pack(engine_fields)
 
             if self.store_detections:
                 vis_util.visualize_boxes_and_labels_on_image_array(
@@ -179,12 +179,6 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
                 path = self.storage_path + str(time.time()) + ".png"
                 logger.info("Stored image: {}".format(path))
                 Image.fromarray(image_np).save(path)
-
-        else:
-            result_wrapper = gabriel_pb2.ResultWrapper()
-            result_wrapper.frame_id = from_client.frame_id
-            result_wrapper.status = gabriel_pb2.ResultWrapper.Status.SUCCESS
-            result_wrapper.engine_fields.Pack(engine_fields)
 
         return result_wrapper
 
