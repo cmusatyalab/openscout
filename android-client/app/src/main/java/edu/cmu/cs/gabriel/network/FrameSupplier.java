@@ -30,13 +30,11 @@ import edu.cmu.cs.gabriel.Const;
 import edu.cmu.cs.gabriel.GabrielClientActivity;
 import edu.cmu.cs.gabriel.protocol.Protos.FromClient;
 import edu.cmu.cs.gabriel.protocol.Protos.PayloadType;
-import edu.cmu.cs.openscout.Protos.EngineFields;
 import edu.cmu.cs.gabriel.client.function.Supplier;
 
 public class FrameSupplier implements Supplier<FromClient.Builder> {
 
-    //private static String ENGINE_NAME = "openscout-object";
-    private static String ENGINE_NAME = "openscout-face";
+    private static String ENGINE_NAME = "openscout";
 
     private GabrielClientActivity gabrielClientActivity;
 
@@ -75,15 +73,8 @@ public class FrameSupplier implements Supplier<FromClient.Builder> {
 
         FromClient.Builder fromClientBuilder = FromClient.newBuilder();
         fromClientBuilder.setPayloadType(PayloadType.IMAGE);
-        fromClientBuilder.setEngineName(ENGINE_NAME);
-        fromClientBuilder.setPayload(ByteString.copyFrom(frame));
-
-        EngineFields.Builder engineFieldsBuilder = EngineFields.newBuilder();
-        EngineFields engineFields = engineFieldsBuilder.build();
-
-        // TODO: Switch to this once MobilEdgeX supports protobuf-javalite:
-        //fromClientBuilder.setEngineFields(Any.pack(engineFields));
-        fromClientBuilder.setEngineFields(FrameSupplier.pack(engineFields));
+        fromClientBuilder.setFilterPassed(ENGINE_NAME);
+        fromClientBuilder.addPayloadsForFrame(ByteString.copyFrom(frame));
 
         return fromClientBuilder;
     }
@@ -97,12 +88,4 @@ public class FrameSupplier implements Supplier<FromClient.Builder> {
         return FrameSupplier.convertEngineInput(engineInput);
     }
 
-    // Based on
-    // https://github.com/protocolbuffers/protobuf/blob/master/src/google/protobuf/compiler/java/java_message.cc#L1387
-    private static Any pack(EngineFields engineFields) {
-        return Any.newBuilder()
-                .setTypeUrl("type.googleapis.com/openscout.EngineFields")
-                .setValue(engineFields.toByteString())
-                .build();
-    }
 }

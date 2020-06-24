@@ -42,34 +42,6 @@ android {
             minSdkVersion 21
         }
     }
-
-    protobuf {
-        protoc {
-            // You still need protoc like in the non-Android case
-            artifact = 'com.google.protobuf:protoc:3.7.0'
-        }
-        plugins {
-            javalite {
-                // The codegen for lite comes as a separate artifact
-                artifact = 'com.google.protobuf:protoc-gen-javalite:3.0.0'
-            }
-        }
-        generateProtoTasks {
-            all().each { task ->
-                task.builtins {
-                    // In most cases you don't need the full Java output
-                    // if you use the lite output.
-                    remove java
-                }
-                task.plugins {
-                    javalite {
-                        outputSubDir = 'java'
-                    }
-                }
-
-            }
-        }
-    }
 }
 
 dependencies {
@@ -78,6 +50,7 @@ dependencies {
     implementation 'com.android.support:multidex:1.0.3'
     implementation 'edu.cmu.cs.gabriel:client:0.2.0'
 
-    standardImplementation 'edu.cmu.cs.gabriel:protocol-old-protobuf:0.1.15'
-    timingImplementation 'edu.cmu.cs.gabriel:protocol-old-protobuf:0.1.15'
+    // standardImplementation 'edu.cmu.cs.gabriel:protocol-old-protobuf:0.1.15'
+    //timingImplementation 'edu.cmu.cs.gabriel:protocol-old-protobuf:0.1.15'
+    implementation 'edu.cmu.cs.gabriel:protocol:0.1.15'
 }

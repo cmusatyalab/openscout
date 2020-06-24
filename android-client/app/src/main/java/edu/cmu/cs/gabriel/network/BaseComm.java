@@ -23,25 +23,26 @@ import android.os.Message;
 import android.util.Log;
 
 import com.google.protobuf.ByteString;
-import com.google.protobuf.InvalidProtocolBufferException;
 
+import edu.cmu.cs.gabriel.client.comm.SendSupplierResult;
 import edu.cmu.cs.gabriel.client.function.Consumer;
 import edu.cmu.cs.gabriel.protocol.Protos.PayloadType;
 import edu.cmu.cs.gabriel.protocol.Protos.ResultWrapper;
-import edu.cmu.cs.openscout.Protos.EngineFields;
 import edu.cmu.cs.gabriel.client.comm.ServerCommCore;
+import edu.cmu.cs.gabriel.client.comm.ErrorType;
 import edu.cmu.cs.openscout.R;
 
 
 public class BaseComm {
     private static String TAG = "OpenScoutComm";
-    //private static String ENGINE_NAME = "openscout-object";
-    private static String ENGINE_NAME = "openscout-face";
+    private static String FILTER = "openscout";
 
     ServerCommCore serverCommCore;
     Consumer<ResultWrapper> consumer;
-    Runnable onDisconnect;
+    Consumer<ErrorType> onDisconnect;
     private boolean shownError;
+    private Handler returnMsgHandler;
+    private Activity activity;
 
     public BaseComm(final Activity activity, final Handler returnMsgHandler) {
 
@@ -53,14 +54,13 @@ public class BaseComm {
                     return;
                 }
 
-                ResultWrapper.Result result = resultWrapper.getResults(0);
-                try {
-                    EngineFields ef = EngineFields.parseFrom(resultWrapper.getEngineFields().getValue());
-
-                }  catch (InvalidProtocolBufferException e) {
-                    e.printStackTrace();
+                if (!resultWrapper.getFilterPassed().equals(FILTER)) {
+                    Log.e(TAG, "Got result that passed filter " +
+                            resultWrapper.getFilterPassed());
+                    return;
                 }
 
+                ResultWrapper.Result result = resultWrapper.getResults(0);
                 Message msg = Message.obtain();
 
                 if (result.getPayloadType() == PayloadType.IMAGE) {
@@ -83,45 +83,64 @@ public class BaseComm {
                     return;
                 }
 
-                if (!result.getEngineName().equals(ENGINE_NAME)) {
-                    Log.e(TAG, "Got result from engine " + result.getEngineName());
-                    return;
-                }
-
-
                 returnMsgHandler.sendMessage(msg);
             }
         };
 
-        this.onDisconnect = new Runnable() {
+        this.onDisconnect = new Consumer<ErrorType>() {
             @Override
-            public void run() {
-                Log.i(TAG, "Disconnected");
-                String message = BaseComm.this.serverCommCore.isRunning()
-                        ? activity.getResources().getString(R.string.server_disconnected)
-                        : activity.getResources().getString(R.string.could_not_connect);
-
-                if (BaseComm.this.shownError) {
-                    return;
+            public void accept(ErrorType errorType) {
+                int stringId;
+                switch (errorType) {
+                    case SERVER_ERROR:
+                        stringId = R.string.server_error;
+                        break;
+                    case SERVER_DISCONNECTED:
+                        stringId = R.string.server_disconnected;
+                        break;
+                    case COULD_NOT_CONNECT:
+                        stringId = R.string.could_not_connect;
+                        break;
+                    default:
+                        stringId = R.string.unspecified_error;
                 }
-
-                BaseComm.this.shownError = true;
-
-                Message msg = Message.obtain();
-                msg.what = NetworkProtocol.NETWORK_RET_FAILED;
-                Bundle data = new Bundle();
-                data.putString("message", message);
-                msg.setData(data);
-                returnMsgHandler.sendMessage(msg);
+                BaseComm.this.showErrorMessage(stringId);
             }
         };
 
         this.shownError = false;
+        this.activity = activity;
+        this.returnMsgHandler = returnMsgHandler;
+
+    }
+
+    public void showErrorMessage(int stringId) {
+        if (this.shownError) {
+            return;
+        }
+
+        BaseComm.this.shownError = true;
+        Log.i(TAG, "Disconnected");
+        Message msg = Message.obtain();
+        msg.what = NetworkProtocol.NETWORK_RET_FAILED;
+        Bundle data = new Bundle();
+        data.putString("message", activity.getResources().getString(stringId));
+        msg.setData(data);
+        returnMsgHandler.sendMessage(msg);
     }
 
     public void sendSupplier(FrameSupplier frameSupplier) {
-        this.serverCommCore.sendSupplier(frameSupplier);
+        if (!this.serverCommCore.isRunning()) {
+            return;
+        }
+
+        SendSupplierResult sendSupplierResult = this.serverCommCore.sendSupplier(
+                frameSupplier, FILTER);
+        if (sendSupplierResult == SendSupplierResult.ERROR_GETTING_TOKEN) {
+            this.showErrorMessage(R.string.token_error);
+        }
     }
+
 
     public void stop() {
         this.serverCommCore.stop();
