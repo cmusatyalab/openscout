@@ -37,6 +37,7 @@ from io import BytesIO
 from PIL import Image, ImageDraw
 from azure.cognitiveservices.vision.face import FaceClient
 from msrest.authentication import CognitiveServicesCredentials
+from msrest.exceptions import ValidationError
 from azure.cognitiveservices.vision.face.models import TrainingStatusType, Person, SnapshotObjectType, OperationStatusType, APIErrorException
 
 logger = logging.getLogger(__name__)
@@ -156,7 +157,10 @@ class OpenScoutFaceEngine(cognitive_engine.Engine):
         if len(face_ids) > 0:
             logger.debug('Detected {} faces. Attempting recognition...'.format(len(face_ids)))
             # Identify faces
-            identities = self.recognition(face_ids)
+            try:
+                identities = self.recognition(face_ids)
+            except ValidationError as v:
+                logger.error(v.message)
                 
             for person in identities:
                 if len(person.candidates) > 0:
@@ -175,6 +179,8 @@ class OpenScoutFaceEngine(cognitive_engine.Engine):
                             draw = ImageDraw.Draw(bb_img)
                             for face in detections:
                                 draw.rectangle(self.getRectangle(face), outline='red')
+                                draw.text(self.getRectangle(face)[0],'{} ({:.3f})'.format(match.name,  person.candidates[0].confidence))
+
                             path = self.storage_path + str(time.time()) + ".png"
                             logger.info("Stored image: {}".format(path))
                             bb_img.save(path)
