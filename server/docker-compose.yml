@@ -30,6 +30,8 @@ services:
     restart: unless-stopped
     privileged: true
     entrypoint: ["./face.py", "--apikey", "${API_KEY}", "--threshold", "${FACE_THRESHOLD}"]
+    volumes:
+      - ./openscout-vol:/openscout/server/images/
     depends_on:
       - gabriel-server
       - ms-face-service
@@ -45,6 +47,8 @@ services:
     # for NVIDIA GPUs
     # gpus: all     # not yet supported by docker-compose
     runtime: nvidia
+    volumes:
+      - ./openscout-vol:/openscout/server/images/
     depends_on:
       - gabriel-server
     networks:
@@ -66,5 +70,3 @@ services:
 networks:
   openscout-net:
 
-volumes:
-  openscout-vol:
