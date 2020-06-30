@@ -5,13 +5,7 @@ package openscout;
 option java_package = "edu.cmu.cs.openscout";
 option java_outer_classname = "Protos";
 
-message EngineFields {
-    // From https://github.com/protocolbuffers/protobuf/blob/master/src/google/protobuf/wrappers.proto#L120
-    // TODO: Switch to google.protobuf.BytesValue once MobilEdgeX supports protobuf-javalite
-    message BytesValue {
-        // The bytes value.
-        bytes value = 1;
-    }
-
-    string result_string = 1;
+message Extras {
+    bool is_training = 1;
+    string name = 2;
 }

@@ -19,24 +19,31 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='openscout.proto',
   package='openscout',
   syntax='proto3',
-  serialized_pb=_b('\n\x0fopenscout.proto\x12\topenscout\"B\n\x0c\x45ngineFields\x12\x15\n\rresult_string\x18\x01 \x01(\t\x1a\x1b\n\nBytesValue\x12\r\n\x05value\x18\x01 \x01(\x0c\x42\x1e\n\x14\x65\x64u.cmu.cs.openscoutB\x06Protosb\x06proto3')
+  serialized_pb=_b('\n\x0fopenscout.proto\x12\topenscout\"+\n\x06\x45xtras\x12\x13\n\x0bis_training\x18\x01 \x01(\x08\x12\x0c\n\x04name\x18\x02 \x01(\tB\x1e\n\x14\x65\x64u.cmu.cs.openscoutB\x06Protosb\x06proto3')
 )
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
 
 
 
-_ENGINEFIELDS_BYTESVALUE = _descriptor.Descriptor(
-  name='BytesValue',
-  full_name='openscout.EngineFields.BytesValue',
+_EXTRAS = _descriptor.Descriptor(
+  name='Extras',
+  full_name='openscout.Extras',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='value', full_name='openscout.EngineFields.BytesValue.value', index=0,
-      number=1, type=12, cpp_type=9, label=1,
-      has_default_value=False, default_value=_b(""),
+      name='is_training', full_name='openscout.Extras.is_training', index=0,
+      number=1, type=8, cpp_type=7, label=1,
+      has_default_value=False, default_value=False,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='name', full_name='openscout.Extras.name', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
@@ -52,57 +59,18 @@ _ENGINEFIELDS_BYTESVALUE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=69,
-  serialized_end=96,
-)
-
-_ENGINEFIELDS = _descriptor.Descriptor(
-  name='EngineFields',
-  full_name='openscout.EngineFields',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='result_string', full_name='openscout.EngineFields.result_string', index=0,
-      number=1, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=_b("").decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-  ],
-  extensions=[
-  ],
-  nested_types=[_ENGINEFIELDS_BYTESVALUE, ],
-  enum_types=[
-  ],
-  options=None,
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-  ],
   serialized_start=30,
-  serialized_end=96,
+  serialized_end=73,
 )
 
-_ENGINEFIELDS_BYTESVALUE.containing_type = _ENGINEFIELDS
-DESCRIPTOR.message_types_by_name['EngineFields'] = _ENGINEFIELDS
+DESCRIPTOR.message_types_by_name['Extras'] = _EXTRAS
 
-EngineFields = _reflection.GeneratedProtocolMessageType('EngineFields', (_message.Message,), dict(
-
-  BytesValue = _reflection.GeneratedProtocolMessageType('BytesValue', (_message.Message,), dict(
-    DESCRIPTOR = _ENGINEFIELDS_BYTESVALUE,
-    __module__ = 'openscout_pb2'
-    # @@protoc_insertion_point(class_scope:openscout.EngineFields.BytesValue)
-    ))
-  ,
-  DESCRIPTOR = _ENGINEFIELDS,
+Extras = _reflection.GeneratedProtocolMessageType('Extras', (_message.Message,), dict(
+  DESCRIPTOR = _EXTRAS,
   __module__ = 'openscout_pb2'
-  # @@protoc_insertion_point(class_scope:openscout.EngineFields)
+  # @@protoc_insertion_point(class_scope:openscout.Extras)
   ))
-_sym_db.RegisterMessage(EngineFields)
-_sym_db.RegisterMessage(EngineFields.BytesValue)
+_sym_db.RegisterMessage(Extras)
 
 
 DESCRIPTOR.has_options = True
