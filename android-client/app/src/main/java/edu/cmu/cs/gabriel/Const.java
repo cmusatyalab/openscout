@@ -44,6 +44,9 @@ public class Const {
     public static boolean FRONT_ROTATION = false;
     public static boolean SHOW_RECORDER = true;
     public static boolean SHOW_FPS = true;
+    public static boolean IS_TRAINING = false;
+    public static int TRAIN_TIME = 5000; //5 seconds
+    public static String TRAINING_NAME = "";
 
     // high level sensor control (on/off)
     public static boolean SENSOR_VIDEO = true;

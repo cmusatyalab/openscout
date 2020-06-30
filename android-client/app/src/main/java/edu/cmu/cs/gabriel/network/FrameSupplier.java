@@ -29,6 +29,7 @@ import java.io.ByteArrayOutputStream;
 import edu.cmu.cs.gabriel.Const;
 import edu.cmu.cs.gabriel.GabrielClientActivity;
 import edu.cmu.cs.gabriel.protocol.Protos.FromClient;
+import edu.cmu.cs.openscout.Protos.Extras;
 import edu.cmu.cs.gabriel.protocol.Protos.PayloadType;
 import edu.cmu.cs.gabriel.client.function.Supplier;
 
@@ -76,6 +77,15 @@ public class FrameSupplier implements Supplier<FromClient.Builder> {
         fromClientBuilder.setFilterPassed(ENGINE_NAME);
         fromClientBuilder.addPayloadsForFrame(ByteString.copyFrom(frame));
 
+        if (Const.IS_TRAINING) {
+            Extras.Builder extrasBuilder = Extras.newBuilder();
+            extrasBuilder.setIsTraining(true);
+            extrasBuilder.setName(Const.TRAINING_NAME);
+            Extras extras = extrasBuilder.build();
+            fromClientBuilder.setExtras(FrameSupplier.pack(extras));
+        }
+
+
         return fromClientBuilder;
     }
 
@@ -86,6 +96,16 @@ public class FrameSupplier implements Supplier<FromClient.Builder> {
         }
 
         return FrameSupplier.convertEngineInput(engineInput);
+    }
+
+
+    // Based on
+    // https://github.com/protocolbuffers/protobuf/blob/master/src/google/protobuf/compiler/java/java_message.cc#L1387
+    private static Any pack(Extras engineFields) {
+        return Any.newBuilder()
+                .setTypeUrl("type.googleapis.com/openscout.Extras")
+                .setValue(engineFields.toByteString())
+                .build();
     }
 
 }

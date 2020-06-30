@@ -29,6 +29,7 @@ import java.util.Date;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.Rect;
 import android.graphics.SurfaceTexture;
@@ -36,6 +37,9 @@ import android.graphics.YuvImage;
 import android.hardware.Camera;
 import android.hardware.Camera.PreviewCallback;
 import android.hardware.Camera.Size;
+import android.text.InputFilter;
+import android.text.InputType;
+import android.view.LayoutInflater;
 
 import android.media.MediaRecorder;
 import android.os.Bundle;
@@ -46,6 +50,8 @@ import android.util.Log;
 import android.view.TextureView;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.MediaController;
@@ -62,6 +68,7 @@ import android.content.DialogInterface;
 import android.net.Uri;
 import android.media.MediaActionSound;
 import android.text.method.ScrollingMovementMethod;
+import android.text.method.TextKeyListener;
 
 import edu.cmu.cs.gabriel.network.EngineInput;
 import edu.cmu.cs.gabriel.network.FrameSupplier;
@@ -75,7 +82,7 @@ import static edu.cmu.cs.gabriel.client.Util.ValidateEndpoint;
 
 public class GabrielClientActivity extends Activity implements TextureView.SurfaceTextureListener {
 
-    private static final String LOG_TAG = "Main";
+    private static final String LOG_TAG = "GabrielClientActivity";
     private static final int REQUEST_CODE = 1000;
     private static int DISPLAY_WIDTH = 640;
     private static int DISPLAY_HEIGHT = 480;
@@ -118,6 +125,7 @@ public class GabrielClientActivity extends Activity implements TextureView.Surfa
     // views
     private TextView resultsView = null;
     private Handler fpsHandler = null;
+    private Handler timer = null;
     private int cameraId = 0;
     private boolean imageRotate = false;
     private TextView fpsLabel = null;
@@ -243,10 +251,57 @@ public class GabrielClientActivity extends Activity implements TextureView.Surfa
 
             });
 
+
         } else {
             findViewById(R.id.imgRecord).setVisibility(View.GONE);
             findViewById(R.id.imgScreenshot).setVisibility(View.GONE);
         }
+
+
+        final ImageView trainingButton = (ImageView) findViewById(R.id.imgTrain);
+        trainingButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                final Context context = v.getContext();
+                AlertDialog.Builder builder = new AlertDialog.Builder(context, AlertDialog.THEME_HOLO_DARK);
+                LayoutInflater inflater = getLayoutInflater();
+
+                builder.setMessage(R.string.training_name_prompt)
+                        .setTitle(context.getString(R.string.training_dialog_title));
+                final EditText input = new EditText(context);
+               // input.setKeyListener(TextKeyListener.getInstance("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_"));
+                input.setInputType(InputType.TYPE_TEXT_VARIATION_FILTER);
+                LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.MATCH_PARENT);
+                input.setLayoutParams(lp);
+                builder.setView(input);
+
+                builder.setPositiveButton(R.string.train, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+
+                        Const.IS_TRAINING = true;
+                        Log.i(LOG_TAG, input.getText().toString());
+                        Const.TRAINING_NAME = input.getText().toString();
+                        Toast.makeText(context, context.getString(R.string.training_in_progress, Const.TRAINING_NAME),
+                                Toast.LENGTH_SHORT).show();
+                        timer = new Handler();
+                        timer.postDelayed(training_timer, Const.TRAIN_TIME);
+                    }
+                });
+                builder.setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+                        Toast.makeText(context, String.format("%s", context.getString(R.string.training_canceled)),
+                                Toast.LENGTH_SHORT).show();
+                    }
+                });
+                AlertDialog trainDialog = builder.create();
+                trainDialog.show();
+                trainingButton.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS);
+
+            }
+
+        });
 
         final ImageView camButton = (ImageView) findViewById(R.id.imgSwitchCam);
         final ImageView rotateButton = (ImageView) findViewById(R.id.imgRotate);
@@ -654,6 +709,15 @@ public class GabrielClientActivity extends Activity implements TextureView.Surfa
 
             }
             mCamera.addCallbackBuffer(frame);
+        }
+    };
+
+    private Runnable training_timer = new Runnable() {
+        @Override
+        public void run() {
+            Const.IS_TRAINING = false;
+            Context c = getApplicationContext();
+            Toast.makeText(c, c.getString(R.string.training_succeeded), Toast.LENGTH_SHORT).show();
         }
     };
 
