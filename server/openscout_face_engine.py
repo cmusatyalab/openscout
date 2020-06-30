@@ -20,6 +20,7 @@
 
 import time
 import os
+import uuid
 import cv2
 import numpy as np
 import logging
@@ -47,7 +48,9 @@ logger.setLevel(logging.INFO)
 class OpenScoutFaceEngine(cognitive_engine.Engine):
     ENGINE_NAME = "openscout-face"
     PERSON_GROUP_ID = "known-persons"
+
     def __init__(self, args):
+        self.new_faces = False
         self.apikey = args.apikey
         self.endpoint = args.endpoint
         self.threshold = args.threshold
@@ -140,13 +143,9 @@ class OpenScoutFaceEngine(cognitive_engine.Engine):
         if from_client.payload_type != gabriel_pb2.PayloadType.IMAGE:
             return cognitive_engine.wrong_input_format_error(from_client.frame_id)
 
+        extras = cognitive_engine.unpack_extras(openscout_pb2.Extras, from_client)
+
         image = self.preprocess_image(from_client.payloads_for_frame[0])
-
-        detections = self.detection(image)
-
-        face_ids = []
-        for face in detections:
-            face_ids.append(face.face_id)
         
         result_wrapper = gabriel_pb2.ResultWrapper()
         result_wrapper.result_producer_name.value = self.ENGINE_NAME
@@ -154,39 +153,66 @@ class OpenScoutFaceEngine(cognitive_engine.Engine):
         result_wrapper.frame_id = from_client.frame_id
         result_wrapper.status = gabriel_pb2.ResultWrapper.Status.SUCCESS
 
-        if len(face_ids) > 0:
-            logger.debug('Detected {} faces. Attempting recognition...'.format(len(face_ids)))
-            # Identify faces
+        if extras.is_training:
+            training_dir =  os.getcwd()+"/training/" + extras.name + "/"
             try:
-                identities = self.recognition(face_ids)
-            except ValidationError as v:
-                logger.error(v.message)
-                
-            for person in identities:
-                if len(person.candidates) > 0:
-                    if person.candidates[0].confidence > self.threshold:
-                        match = self.face_client.person_group_person.get(self.PERSON_GROUP_ID, person.candidates[0].person_id)
-                        logger.info('Recognized: {} - Score: {:.3f}'.format(match.name,  person.candidates[0].confidence)) # Get topmost confidence score
+                os.mkdir(training_dir)
+            except FileExistsError:
+                logger.info("Directory already exists.")
+            img = Image.open(image)
+            path = training_dir + str(time.time()) + ".png"
+            logger.info("Stored training image: {}".format(path))
+            img.save(path)
+            self.new_faces = True
+        else:
+            #if we received new images for training and training has ended...
+            if self.new_faces:
+                self.train()
+                self.new_faces = False
+                result = gabriel_pb2.ResultWrapper.Result()
+                result.payload_type = gabriel_pb2.PayloadType.TEXT
+                result.payload = 'Retraining complete.'.encode(encoding="utf-8")
+                result_wrapper.results.append(result)
+            else:
+                detections = self.detection(image)
 
-                        result = gabriel_pb2.ResultWrapper.Result()
-                        result.payload_type = gabriel_pb2.PayloadType.TEXT
-                        result.payload = 'Recognized {} ({:.3f})'.format(match.name,  person.candidates[0].confidence).encode(encoding="utf-8")
-                        result_wrapper.results.append(result)
+                face_ids = []
+                for face in detections:
+                    face_ids.append(face.face_id)
 
-                        if self.store_detections:
-                            bb_img = Image.open(image)
+                if len(face_ids) > 0:
+                    logger.debug('Detected {} faces. Attempting recognition...'.format(len(face_ids)))
+                    # Identify faces
+                    try:
+                        identities = self.recognition(face_ids)
+                    except ValidationError as v:
+                        logger.error(v.message)
 
-                            draw = ImageDraw.Draw(bb_img)
-                            for face in detections:
-                                draw.rectangle(self.getRectangle(face), outline='red')
-                                draw.text(self.getRectangle(face)[0],'{} ({:.3f})'.format(match.name,  person.candidates[0].confidence))
+                    for person in identities:
+                        if len(person.candidates) > 0:
+                            if person.candidates[0].confidence > self.threshold:
+                                match = self.face_client.person_group_person.get(self.PERSON_GROUP_ID, person.candidates[0].person_id)
+                                logger.info('Recognized: {} - Score: {:.3f}'.format(match.name,  person.candidates[0].confidence)) # Get topmost confidence score
 
-                            path = self.storage_path + str(time.time()) + ".png"
-                            logger.info("Stored image: {}".format(path))
-                            bb_img.save(path)
-                    logger.debug('Confidence did not exceed threshold.')
-                else:
-                    logger.debug('No faces recognized from person group.')
+                                result = gabriel_pb2.ResultWrapper.Result()
+                                result.payload_type = gabriel_pb2.PayloadType.TEXT
+                                result.payload = 'Recognized {} ({:.3f})'.format(match.name,  person.candidates[0].confidence).encode(encoding="utf-8")
+                                result_wrapper.results.append(result)
+
+                                if self.store_detections:
+                                    bb_img = Image.open(image)
+
+                                    draw = ImageDraw.Draw(bb_img)
+                                    for face in detections:
+                                        draw.rectangle(self.getRectangle(face), outline='red')
+                                        draw.text(self.getRectangle(face)[0],'{} ({:.3f})'.format(match.name,  person.candidates[0].confidence))
+
+                                    path = self.storage_path + str(time.time()) + ".png"
+                                    logger.info("Stored image: {}".format(path))
+                                    bb_img.save(path)
+                            logger.debug('Confidence did not exceed threshold.')
+                        else:
+                            logger.debug('No faces recognized from person group.')
         return result_wrapper
 
     def preprocess_image(self, image):
