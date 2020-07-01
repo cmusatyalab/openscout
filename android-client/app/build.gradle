@@ -36,10 +36,10 @@ android {
     productFlavors {
         standard {
             isDefault = true
-            minSdkVersion 21
+            minSdkVersion 24
         }
         timing {
-            minSdkVersion 21
+            minSdkVersion 24
         }
     }
 }
