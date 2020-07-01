@@ -204,8 +204,13 @@ class OpenScoutFaceEngine(cognitive_engine.Engine):
 
                                     draw = ImageDraw.Draw(bb_img)
                                     for face in detections:
-                                        draw.rectangle(self.getRectangle(face), outline='red')
-                                        draw.text(self.getRectangle(face)[0],'{} ({:.3f})'.format(match.name,  person.candidates[0].confidence))
+                                        draw.rectangle(self.getRectangle(face), width=4, outline='red')
+                                        text = '{} ({:.3f})'.format(match.name,  person.candidates[0].confidence)
+                                        w, h = draw.textsize(text)
+                                        xy= ((self.getRectangle(face)[0]), (self.getRectangle(face)[0][0]+w, self.getRectangle(face)[0][1]+h))
+                                        draw.rectangle(xy, width=4, outline='red', fill='red')
+                                        draw.text(self.getRectangle(face)[0], text, fill='black')
+
 
                                     path = self.storage_path + str(time.time()) + ".png"
                                     logger.info("Stored image: {}".format(path))
