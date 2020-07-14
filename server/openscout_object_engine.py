@@ -139,17 +139,16 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
             logger.info("Storing detection images at {}".format(self.storage_path))
 
 
-    def handle(self, from_client):
-        if from_client.payload_type != gabriel_pb2.PayloadType.IMAGE:
-            return cognitive_engine.wrong_input_format_error(from_client.frame_id)
+    def handle(self, input_frame):
+        if input_frame.payload_type != gabriel_pb2.PayloadType.IMAGE:
+            status = gabriel_pb2.ResultWrapper.Status.WRONG_INPUT_FORMAT
+            return cognitive_engine.create_result_wrapper(status)
 
-        classname_index, classes, scores, boxes, image_np = self.process_image(from_client.payloads_for_frame[0])
+        classname_index, classes, scores, boxes, image_np = self.process_image(input_frame.payloads[0])
 
-        result_wrapper = gabriel_pb2.ResultWrapper()
+        status = gabriel_pb2.ResultWrapper.Status.SUCCESS
+        result_wrapper = cognitive_engine.create_result_wrapper(status)
         result_wrapper.result_producer_name.value = self.ENGINE_NAME
-        result_wrapper.filter_passed = 'openscout'
-        result_wrapper.frame_id = from_client.frame_id
-        result_wrapper.status = gabriel_pb2.ResultWrapper.Status.SUCCESS
 
         if len(classes) > 0:
             result = gabriel_pb2.ResultWrapper.Result()

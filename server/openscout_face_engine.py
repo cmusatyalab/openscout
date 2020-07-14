@@ -42,7 +42,7 @@ from msrest.exceptions import ValidationError
 from azure.cognitiveservices.vision.face.models import TrainingStatusType, Person, SnapshotObjectType, OperationStatusType, APIErrorException
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 
 class OpenScoutFaceEngine(cognitive_engine.Engine):
@@ -127,6 +127,7 @@ class OpenScoutFaceEngine(cognitive_engine.Engine):
         return detected_faces
 
     def recognition(self, face_ids):
+        """Allow timing engine to override this"""
         return self.face_client.face.identify(face_ids, self.PERSON_GROUP_ID)
 
     # Convert width height to a point in a rectangle
@@ -139,19 +140,19 @@ class OpenScoutFaceEngine(cognitive_engine.Engine):
         
         return ((left, top), (right, bottom))
 
-    def handle(self, from_client):
-        if from_client.payload_type != gabriel_pb2.PayloadType.IMAGE:
-            return cognitive_engine.wrong_input_format_error(from_client.frame_id)
+    def handle(self, input_frame):
+        if input_frame.payload_type != gabriel_pb2.PayloadType.IMAGE:
+            status = gabriel_pb2.ResultWrapper.Status.WRONG_INPUT_FORMAT
+            return cognitive_engine.create_result_wrapper(status)
 
-        extras = cognitive_engine.unpack_extras(openscout_pb2.Extras, from_client)
+        extras = cognitive_engine.unpack_extras(openscout_pb2.Extras, input_frame)
 
-        image = self.preprocess_image(from_client.payloads_for_frame[0])
+        image = self.preprocess_image(input_frame.payloads[0])
         
-        result_wrapper = gabriel_pb2.ResultWrapper()
+
+        status = gabriel_pb2.ResultWrapper.Status.SUCCESS
+        result_wrapper = cognitive_engine.create_result_wrapper(status)
         result_wrapper.result_producer_name.value = self.ENGINE_NAME
-        result_wrapper.filter_passed = 'openscout'
-        result_wrapper.frame_id = from_client.frame_id
-        result_wrapper.status = gabriel_pb2.ResultWrapper.Status.SUCCESS
 
         if extras.is_training:
             training_dir =  os.getcwd()+"/training/" + extras.name + "/"
@@ -189,6 +190,7 @@ class OpenScoutFaceEngine(cognitive_engine.Engine):
                         logger.error(v.message)
 
                     for person in identities:
+                        logger.debug(person)
                         if len(person.candidates) > 0:
                             if person.candidates[0].confidence > self.threshold:
                                 match = self.face_client.person_group_person.get(self.PERSON_GROUP_ID, person.candidates[0].person_id)

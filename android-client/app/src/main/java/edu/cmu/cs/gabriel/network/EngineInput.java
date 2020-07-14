@@ -17,11 +17,20 @@ package edu.cmu.cs.gabriel.network;
 import android.hardware.Camera;
 
 public class EngineInput {
-    byte[] frame;
-    Camera.Parameters parameters;
+    final private byte[] frame;
+    final private Camera.Parameters parameters;
 
     public EngineInput(byte[] frame, Camera.Parameters parameters) {
         this.frame = frame;
         this.parameters = parameters;
     }
+
+    public byte[] getFrame() {
+        return frame;
+    }
+
+    public Camera.Parameters getParameters() {
+        return parameters;
+    }
+
 }

@@ -75,7 +75,7 @@ def main():
         return engine
 
     logger.info("Starting face recognition cognitive engine..")
-    engine_runner.run(engine=face_engine_setup(), filter_name=SOURCE, server_address=args.gabriel)
+    engine_runner.run(engine=face_engine_setup(), source_name=SOURCE, server_address=args.gabriel, all_responses_required=True)
 
 if __name__ == "__main__":
     main()

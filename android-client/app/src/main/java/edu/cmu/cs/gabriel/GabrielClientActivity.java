@@ -26,6 +26,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.net.URI;
 
 import android.app.Activity;
 import android.content.Intent;
@@ -73,12 +74,10 @@ import android.text.method.TextKeyListener;
 import edu.cmu.cs.gabriel.network.EngineInput;
 import edu.cmu.cs.gabriel.network.FrameSupplier;
 import edu.cmu.cs.gabriel.network.NetworkProtocol;
-import edu.cmu.cs.gabriel.network.BaseComm;
 import edu.cmu.cs.gabriel.network.OpenScoutComm;
 import edu.cmu.cs.gabriel.util.Screenshot;
 import edu.cmu.cs.openscout.R;
 
-import static edu.cmu.cs.gabriel.client.Util.ValidateEndpoint;
 
 public class GabrielClientActivity extends Activity implements TextureView.SurfaceTextureListener {
 
@@ -93,7 +92,7 @@ public class GabrielClientActivity extends Activity implements TextureView.Surfa
     // major components for streaming sensor data and receiving information
     String serverIP = null;
 
-    BaseComm comm;
+    OpenScoutComm openscoutcomm;
 
     private boolean isRunning = false;
     private boolean isFirstExperiment = true;
@@ -162,13 +161,19 @@ public class GabrielClientActivity extends Activity implements TextureView.Surfa
      * Stops the background thread and its {@link Handler}.
      */
     private void stopBackgroundThread() {
+        openscoutcomm.stop();
         backgroundThread.quitSafely();
+
+        // Will stop backgroundThread.join() from blocking if backgroundThread is currently blocked
+        // on a call to wait()
+        backgroundThread.interrupt();
+
         try {
             backgroundThread.join();
             backgroundThread = null;
             backgroundHandler = null;
         } catch (InterruptedException e) {
-            e.printStackTrace();
+            Log.e(LOG_TAG, "Problem stopping background thread", e);
         }
     }
 
@@ -184,7 +189,7 @@ public class GabrielClientActivity extends Activity implements TextureView.Surfa
                 this.engineInput = null;  // Prevent sending the same frame again
             } catch (/* InterruptedException */ Exception e) {
                 Log.e(LOG_TAG, "Error waiting for engine input", e);
-                engineInput = null;
+                return null;
             }
         }
         return engineInput;
@@ -193,7 +198,7 @@ public class GabrielClientActivity extends Activity implements TextureView.Surfa
     private Runnable imageUpload = new Runnable() {
         @Override
         public void run() {
-            comm.sendSupplier(GabrielClientActivity.this.frameSupplier);
+            openscoutcomm.sendSupplier(GabrielClientActivity.this.frameSupplier);
 
             if (isRunning) {
                 backgroundHandler.post(imageUpload);
@@ -633,13 +638,23 @@ public class GabrielClientActivity extends Activity implements TextureView.Surfa
         this.startBackgroundThread();
     }
 
-    void setupComm() {
-        String serverURL = ValidateEndpoint(this.serverIP, Const.PORT);
-
-        this.comm = new OpenScoutComm(serverURL, this,
-                returnMsgHandler, Const.TOKEN_LIMIT);
+    int getPort() {
+        int port = URI.create(this.serverIP).getPort();
+        if (port == -1) {
+            return Const.PORT;
+        }
+        return port;
     }
 
+    void setupComm() {
+        int port = getPort();
+        this.openscoutcomm = OpenScoutComm.createOpenScoutComm(
+                this.serverIP, port, this, this.returnMsgHandler, Const.TOKEN_LIMIT);
+    }
+
+    void setOpenScoutComm(OpenScoutComm openscoutcomm) {
+        this.openscoutcomm = openscoutcomm;
+    }
     /**
      * Runs a set of experiments with different server IPs.
      * IP list is defined in the Const file.
@@ -700,7 +715,7 @@ public class GabrielClientActivity extends Activity implements TextureView.Surfa
             if (isRunning) {
                 Camera.Parameters parameters = mCamera.getParameters();
 
-                 if (GabrielClientActivity.this.comm != null) {
+                 if (GabrielClientActivity.this.openscoutcomm != null) {
                     synchronized (GabrielClientActivity.this.engineInputLock) {
                         GabrielClientActivity.this.engineInput = new EngineInput(frame, parameters);
                         GabrielClientActivity.this.engineInputLock.notify();
@@ -797,9 +812,9 @@ public class GabrielClientActivity extends Activity implements TextureView.Surfa
             this.stopBackgroundThread();
         }
 
-        if (this.comm != null) {
-            this.comm.stop();
-            this.comm = null;
+        if (this.openscoutcomm != null) {
+            this.openscoutcomm.stop();
+            this.openscoutcomm = null;
         }
         if (preview != null) {
             mCamera.setPreviewCallback(null);

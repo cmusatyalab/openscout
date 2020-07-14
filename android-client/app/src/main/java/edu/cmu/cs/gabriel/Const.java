@@ -77,6 +77,7 @@ public class Const {
 
     // the app name
     public static final String APP_NAME = "openscout";
+    public static final String SOURCE_NAME = "openscout";
 
     // load images (JPEG) from files and pretend they are just captured by the camera
     public static final File TEST_IMAGE_DIR = new File(ROOT_DIR.getAbsolutePath() +

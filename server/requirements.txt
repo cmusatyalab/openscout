@@ -1,4 +1,4 @@
-gabriel-server==0.1.6
+gabriel-server==2.0.1
 opencv-python>=3, <5
 py-cpuinfo
 #required for TPOD object detection
