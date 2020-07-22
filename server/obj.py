@@ -27,11 +27,9 @@ import cv2
 import argparse
 import importlib
 
-COMPRESSION_PARAMS = [cv2.IMWRITE_JPEG_QUALITY, 67]
 SOURCE = 'openscout'
 
 logging.basicConfig(level=logging.INFO)
-
 logger = logging.getLogger(__name__)
 
 
@@ -56,7 +54,7 @@ def main():
     )
 
     parser.add_argument(
-        "-m", "--model", default="./model/tank_uni", help="(OBJECT DETECTION) Path to directory containing TPOD model (default=./model/tank_uni)"
+        "-m", "--model", default="./model/ssd_resnet50_coco", help="(OBJECT DETECTION) Path to directory containing TPOD model."
     )
 
     parser.add_argument(
