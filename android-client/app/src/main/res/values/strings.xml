@@ -36,6 +36,7 @@
     <string name="recording_complete">Video snippet saved to %s!</string>
     <string name="screenshot_taken">Screenshot saved to %s!</string>
 
+    <string name="results_hint">Detection results will appear here.</string>
     <string name="connecting_toast">Connecting to OpenScout server&#8230;</string>
     <string name="connection_error">Connection Error</string>
     <string name="could_not_connect">Could not connect</string>
