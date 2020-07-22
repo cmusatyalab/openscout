@@ -19,19 +19,17 @@
 #
 #
 from gabriel_server.network_engine import engine_runner
-from openscout_face_engine import OpenScoutFaceEngine
-from timing_engine import TimingFaceEngine
+from openscout_face_engine import OpenFaceEngine, MSFaceEngine
+from timing_engine import TimingMSFaceEngine, TimingOpenFaceEngine
 import logging
 import time
 import cv2
 import argparse
 import importlib
 
-COMPRESSION_PARAMS = [cv2.IMWRITE_JPEG_QUALITY, 67]
 SOURCE = 'openscout'
 
 logging.basicConfig(level=logging.INFO)
-
 logger = logging.getLogger(__name__)
 
 
@@ -53,24 +51,35 @@ def main():
     )
 
     parser.add_argument(
-        "--endpoint", default="http://ms-face-service:5000", help="(FACE DETECTION) Endpoint for the Face cognitive service"
-    )
-
-    parser.add_argument(
-        "--apikey",  help="(FACE DETECTION) API key for cognitive service. Required for metering."
-    )
-
-    parser.add_argument(
         "-g", "--gabriel",  default="tcp://gabriel-server:5555", help="Gabriel server endpoint."
+    )
+
+    parser.add_argument(
+        "--endpoint", default="http://openface-service:5000", help="Endpoint for either OpenFace service or MS Face service"
+    )
+
+    #arguments specific to MS Face Container
+    parser.add_argument(
+        "--msface", action="store_true", default=False, help="Use MS Face Cognitive Service for face recognition"
+    )
+
+    parser.add_argument(
+        "--apikey",  help="(MS Face Service) API key for cognitive service. Required for metering."
     )
 
     args, _ = parser.parse_known_args()
 
     def face_engine_setup():
-        if args.timing:
-            engine = TimingFaceEngine(args)
+        if args.msface:
+            if args.timing:
+                engine = TimingMSFaceEngine(args)
+            else:
+                engine = MSFaceEngine(args)
         else:
-            engine = OpenScoutFaceEngine(args)
+            if args.timing:
+                engine = TimingOpenFaceEngine(args)
+            else:
+                engine = OpenFaceEngine(args)
 
         return engine
 

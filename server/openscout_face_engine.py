@@ -33,6 +33,7 @@ import io
 import glob
 import uuid
 import requests
+import json
 from urllib.parse import urlparse
 from io import BytesIO
 from PIL import Image, ImageDraw
@@ -45,7 +46,113 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 
-class OpenScoutFaceEngine(cognitive_engine.Engine):
+class OpenFaceEngine(cognitive_engine.Engine):
+    ENGINE_NAME = "openscout-face"
+
+    def __init__(self, args):
+        self.new_faces = False
+        self.endpoint = args.endpoint
+        self.threshold = args.threshold
+        self.store_detections = args.store
+
+        logger.info("OpenFace server: {}".format(args.endpoint))
+        logger.info("Confidence Threshold: {}".format(self.threshold))
+        if self.store_detections:
+            self.storage_path = os.getcwd()+"/images/"
+            try:
+                os.mkdir(self.storage_path)
+            except FileExistsError:
+                logger.info("Images directory already exists.")
+            logger.info("Storing detection images at {}".format(self.storage_path))
+        self.train()
+
+    def train(self):
+        response = requests.get("{}/{}".format(self.endpoint, 'train')).json()
+        logger.info(response)
+
+    def infer(self, img):
+        headers = {'content-type': 'image/jpeg'}
+        # send http request with image and receive response
+        response = requests.post("{}/{}".format(self.endpoint, 'infer'), data=img, headers=headers)
+        return response.text
+
+    def getRectangle(self, person):
+        return ((person['bb-tl-x'], person['bb-tl-y']), (person['bb-br-x'], person['bb-br-y']))
+
+    def handle(self, input_frame):
+        if input_frame.payload_type != gabriel_pb2.PayloadType.IMAGE:
+            status = gabriel_pb2.ResultWrapper.Status.WRONG_INPUT_FORMAT
+            return cognitive_engine.create_result_wrapper(status)
+
+        extras = cognitive_engine.unpack_extras(openscout_pb2.Extras, input_frame)
+
+        image = self.preprocess_image(input_frame.payloads[0])
+
+        status = gabriel_pb2.ResultWrapper.Status.SUCCESS
+        result_wrapper = cognitive_engine.create_result_wrapper(status)
+        result_wrapper.result_producer_name.value = self.ENGINE_NAME
+
+        if extras.is_training:
+            training_dir =  os.getcwd()+"/training/" + extras.name + "/"
+            try:
+                os.mkdir(training_dir)
+            except FileExistsError:
+                logger.info("Directory already exists.")
+            img = Image.open(image)
+            path = training_dir + str(time.time()) + ".png"
+            logger.info("Stored training image: {}".format(path))
+            img.save(path)
+            self.new_faces = True
+        else:
+            #if we received new images for training and training has ended...
+            if self.new_faces:
+                self.train()
+                self.new_faces = False
+                result = gabriel_pb2.ResultWrapper.Result()
+                result.payload_type = gabriel_pb2.PayloadType.TEXT
+                result.payload = 'Retraining complete.'.encode(encoding="utf-8")
+                result_wrapper.results.append(result)
+            else:
+                response = self.infer(image)
+                if response is not None:
+                    identities = json.loads(response)
+                    if len(identities) > 0:
+                        logger.debug('Detected {} faces. Attempting recognition...'.format(len(identities)))
+                        # Identify faces
+                        for person in identities:
+                            logger.debug(person)
+                            if person['confidence'] > self.threshold:
+                                logger.info('Recognized: {} - Score: {:.3f}'.format(person['name'],  person['confidence']))
+
+                                result = gabriel_pb2.ResultWrapper.Result()
+                                result.payload_type = gabriel_pb2.PayloadType.TEXT
+                                result.payload = 'Recognized {} ({:.3f})'.format(person['name'],  person['confidence']).encode(encoding="utf-8")
+                                result_wrapper.results.append(result)
+                            else:
+                                logger.debug('Confidence did not exceed threshold.')
+                        if self.store_detections:
+                            bb_img = Image.open(image)
+
+                            draw = ImageDraw.Draw(bb_img)
+                            for person in identities:
+                                draw.rectangle(self.getRectangle(person), width=4, outline='red')
+                                text = '{} ({:.3f})'.format(person['name'],  person['confidence'])
+                                w, h = draw.textsize(text)
+                                xy= ((self.getRectangle(person)[0]), (self.getRectangle(person)[0][0]+w, self.getRectangle(person)[0][1]+h))
+                                draw.rectangle(xy, width=4, outline='red', fill='red')
+                                draw.text(self.getRectangle(person)[0], text, fill='black')
+
+                            path = self.storage_path + str(time.time()) + ".png"
+                            logger.info("Stored image: {}".format(path))
+                            bb_img.save(path)
+                else:
+                    logger.debug('No faces recognized with confidence above {}.'.format(self.threshold))
+        return result_wrapper
+
+    def preprocess_image(self, image):
+        return BytesIO(image)
+
+class MSFaceEngine(cognitive_engine.Engine):
     ENGINE_NAME = "openscout-face"
     PERSON_GROUP_ID = "known-persons"
 
