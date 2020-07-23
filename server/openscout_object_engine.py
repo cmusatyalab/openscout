@@ -91,36 +91,6 @@ class TFPredictor():
         self.output_dict = output_dict
         return output_dict
 
-    def inferFile(self, image):
-        #image_np = np.array(Image.open(image_file_path))
-        results = self.infer(image)
-        res_boxes = results['detection_boxes']
-        res_classes = results['detection_classes']
-        res_scores = results['detection_scores']
-        return res_classes,res_scores, res_boxes
-    
-    def getMaxScoreClasses(self, res_scores, res_classes, res_boxes, min_score_thresh):
-        return_scores = []
-        return_classes = []
-        return_boxes = []
-        for i in range(len(res_scores)): 
-            if res_scores[i] > (min_score_thresh):
-                return_scores.append(res_scores[i])
-                return_classes.append(res_classes[i])
-                return_boxes.append(res_boxes[i])
-            else:
-                break  
-        return return_classes,return_scores, return_boxes
-
-    def runPredictor(self, image, min_score_thresh):
-        classes = None
-        scores = None
-        boxes = None
-        res_classes, res_scores, res_boxes = self.inferFile(image) 
-        classes, scores, boxes = self.getMaxScoreClasses(res_scores, res_classes, res_boxes, min_score_thresh)  
-        return self.category_index, classes, scores, boxes
-
-
 class OpenScoutObjectEngine(cognitive_engine.Engine):
     ENGINE_NAME = "openscout-object"
 
@@ -144,37 +114,51 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
             status = gabriel_pb2.ResultWrapper.Status.WRONG_INPUT_FORMAT
             return cognitive_engine.create_result_wrapper(status)
 
-        classname_index, classes, scores, boxes, image_np = self.process_image(input_frame.payloads[0])
+        output_dict, image_np = self.process_image(input_frame.payloads[0])
 
         status = gabriel_pb2.ResultWrapper.Status.SUCCESS
         result_wrapper = cognitive_engine.create_result_wrapper(status)
         result_wrapper.result_producer_name.value = self.ENGINE_NAME
 
-        if len(classes) > 0:
+        if output_dict['num_detections'] > 0:
+            #convert numpy arrays to python lists
+            classes = output_dict['detection_classes'].tolist()
+            boxes = output_dict['detection_boxes'].tolist()
+            scores = output_dict['detection_scores'].tolist()
+
             result = gabriel_pb2.ResultWrapper.Result()
             result.payload_type = gabriel_pb2.PayloadType.TEXT
 
+            detections_above_threshold = False
             r = ""
             for i in range(0, len(classes)):
-                logger.info("Detected : {} - Score: {:.3f}".format(classname_index[classes[i]]['name'],scores[i]))
-                if i > 0:
-                    r += ", "
-                r += "Detected {} ({:.3f})".format(classname_index[classes[i]]['name'],scores[i])
-            result.payload = r.encode(encoding="utf-8")
-            result_wrapper.results.append(result)
+                if(scores[i] > self.threshold):
+                    detections_above_threshold = True
+                    logger.info("Detected : {} - Score: {:.3f}".format(self.detector.category_index[classes[i]]['name'],scores[i]))
+                    if i > 0:
+                        r += ", "
+                    r += "Detected {} ({:.3f})".format(self.detector.category_index[classes[i]]['name'],scores[i])
 
-            if self.store_detections:
-                vis_util.visualize_boxes_and_labels_on_image_array(
-                    image_np,
-                    np.squeeze(self.detector.output_dict['detection_boxes']),
-                    np.squeeze(self.detector.output_dict['detection_classes']),
-                    np.squeeze(self.detector.output_dict['detection_scores']),
-                    classname_index,
-                    use_normalized_coordinates=True,
-                    line_thickness=4)
-                path = self.storage_path + str(time.time()) + ".png"
-                logger.info("Stored image: {}".format(path))
-                Image.fromarray(image_np).save(path)
+            if detections_above_threshold:
+                result.payload = r.encode(encoding="utf-8")
+                result_wrapper.results.append(result)
+
+                if self.store_detections:
+                    try:
+                        vis_util.visualize_boxes_and_labels_on_image_array(
+                            image_np,
+                            np.squeeze(output_dict['detection_boxes']),
+                            np.squeeze(output_dict['detection_classes']),
+                            np.squeeze(output_dict['detection_scores']),
+                            self.detector.category_index,
+                            use_normalized_coordinates=True,
+                            min_score_thresh=self.threshold,
+                            line_thickness=4)
+                        path = self.storage_path + str(time.time()) + ".png"
+                        logger.info("Stored image: {}".format(path))
+                        Image.fromarray(image_np).save(path)
+                    except IndexError as e:
+                        logger.error(e)
 
         return result_wrapper
 
@@ -183,12 +167,10 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
         img = cv2.imdecode(np_data, cv2.IMREAD_COLOR)
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
-        #preprocessed = self.adapter.preprocessing(img)
-        classname_index, classes, scores, boxes = self.inference(img)
-        #img_out = self.adapter.postprocessing(post_inference)
-        return classname_index, classes, scores, boxes, img
+        output_dict = self.inference(img)
+        return output_dict, img
 
     def inference(self, img):
         """Allow timing engine to override this"""
-        return self.detector.runPredictor(img, self.threshold)
+        return self.detector.infer(img)
 
