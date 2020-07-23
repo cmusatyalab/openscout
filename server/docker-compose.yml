@@ -5,7 +5,7 @@
 version: '2.3'
 services:
   gabriel-server:
-    image: cmusatyalab/openscout
+    image: cmusatyalab/openscout:${OPENSCOUT_TAG}
     container_name: gabriel-server
     ports:
       - "9099:9099"
@@ -16,7 +16,7 @@ services:
       - openscout-net
 
   face-engine:
-    image: cmusatyalab/openscout
+    image: cmusatyalab/openscout:${OPENSCOUT_TAG}
     container_name: openscout-face-engine
     restart: unless-stopped
     privileged: true
@@ -34,7 +34,7 @@ services:
       - openscout-net
 
   object-engine:
-    image: cmusatyalab/openscout
+    image: cmusatyalab/openscout:${OPENSCOUT_TAG}
     container_name: openscout-object-engine
     restart: unless-stopped
     privileged: true
