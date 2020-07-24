@@ -48,6 +48,9 @@ services:
       - gabriel-server
     networks:
       - openscout-net
+    #the following environment variable may be necessary if your GPU only has a modest (~2GB) amount of RAM
+    #environment:
+    #  - TF_FORCE_GPU_ALLOW_GROWTH=true
 
 # OpenFace is the default for face recognition
   openface-service:
