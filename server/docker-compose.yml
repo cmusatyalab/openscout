@@ -38,7 +38,7 @@ services:
     container_name: openscout-object-engine
     restart: unless-stopped
     privileged: true
-    entrypoint: ["./obj.py", "--model", "${DNN}", "--threshold", "${OBJ_THRESHOLD}"]
+    entrypoint: ["./obj.py", "--model", "${DNN}", "--threshold", "${OBJ_THRESHOLD}", "--exclude", "${EXCLUSIONS}"]
     # for NVIDIA GPUs
     # gpus: all     # not yet supported by docker-compose
     runtime: nvidia

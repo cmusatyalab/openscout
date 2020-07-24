@@ -98,8 +98,10 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
         self.detector = TFPredictor(args.model)
         self.threshold = args.threshold
         self.store_detections = args.store
+        self.exclusions = list(map(int, args.exclude.split(","))) #split string to int list
         logger.info("TensorFlowPredictor initialized with the following model path: {}".format(args.model))
         logger.info("Confidence Threshold: {}".format(self.threshold))
+        logger.info("Excluding the following class ids: {}".format(self.exclusions))
         if self.store_detections:
             self.storage_path = os.getcwd()+"/images/"
             try:
@@ -133,11 +135,12 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
             r = ""
             for i in range(0, len(classes)):
                 if(scores[i] > self.threshold):
-                    detections_above_threshold = True
-                    logger.info("Detected : {} - Score: {:.3f}".format(self.detector.category_index[classes[i]]['name'],scores[i]))
-                    if i > 0:
-                        r += ", "
-                    r += "Detected {} ({:.3f})".format(self.detector.category_index[classes[i]]['name'],scores[i])
+                    if classes[i] not in self.exclusions:
+                        detections_above_threshold = True
+                        logger.info("Detected : {} - Score: {:.3f}".format(self.detector.category_index[classes[i]]['name'],scores[i]))
+                        if i > 0:
+                            r += ", "
+                        r += "Detected {} ({:.3f})".format(self.detector.category_index[classes[i]]['name'],scores[i])
 
             if detections_above_threshold:
                 result.payload = r.encode(encoding="utf-8")

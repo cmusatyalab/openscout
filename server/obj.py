@@ -69,6 +69,10 @@ def main():
         "-g", "--gabriel",  default="tcp://gabriel-server:5555", help="Gabriel server endpoint."
     )
 
+    parser.add_argument(
+        "-x", "--exclude", help="Comma separated list of classes (ids) to exclude when peforming detection. Consult model/<model_name>/label_map.pbtxt."
+    )
+
     args, _ = parser.parse_known_args()
 
     def object_engine_setup():
