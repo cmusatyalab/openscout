@@ -71,6 +71,8 @@ import android.media.MediaActionSound;
 import android.text.method.ScrollingMovementMethod;
 import android.text.method.TextKeyListener;
 
+import androidx.core.content.ContextCompat;
+
 import edu.cmu.cs.gabriel.network.EngineInput;
 import edu.cmu.cs.gabriel.network.FrameSupplier;
 import edu.cmu.cs.gabriel.network.NetworkProtocol;
@@ -221,7 +223,20 @@ public class GabrielClientActivity extends Activity implements TextureView.Surfa
         resultsView.setMovementMethod(new ScrollingMovementMethod());
         fpsLabel = (TextView) findViewById(R.id.fpsLabel);
 
-
+        final ImageView toggleResultsButton = findViewById(R.id.imgResultsToggle);
+        toggleResultsButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if(resultsView.getVisibility() == View.GONE ) {
+                    findViewById(R.id.resultsText).setVisibility(View.VISIBLE);
+                    toggleResultsButton.setImageDrawable(ContextCompat.getDrawable(getApplicationContext(), R.drawable.ic_results_off));
+                 } else {
+                    findViewById(R.id.resultsText).setVisibility(View.GONE);
+                    toggleResultsButton.setImageDrawable(ContextCompat.getDrawable(getApplicationContext(), R.drawable.ic_results_on));
+                }
+                toggleResultsButton.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS);
+            }
+        });
 
         if(Const.SHOW_RECORDER) {
             final ImageView recButton = findViewById(R.id.imgRecord);
