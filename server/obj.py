@@ -62,7 +62,7 @@ def main():
     )
 
     parser.add_argument(
-        "-s", "--store", action="store_true", default=True, help="Store images with bounding boxes"
+        "-s", "--store", action="store_true", default=False, help="Store images with bounding boxes"
     )
 
     parser.add_argument(
