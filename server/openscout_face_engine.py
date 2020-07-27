@@ -27,7 +27,6 @@ import logging
 from gabriel_server import cognitive_engine
 from gabriel_protocol import gabriel_pb2
 from openscout_protocol import openscout_pb2
-from PIL import Image
 import asyncio
 import io
 import glob
@@ -58,6 +57,7 @@ class OpenFaceEngine(cognitive_engine.Engine):
         logger.info("OpenFace server: {}".format(args.endpoint))
         logger.info("Confidence Threshold: {}".format(self.threshold))
         if self.store_detections:
+            self.watermark = Image.open(os.getcwd()+"/watermark.png")
             self.storage_path = os.getcwd()+"/images/"
             try:
                 os.mkdir(self.storage_path)
@@ -142,6 +142,7 @@ class OpenFaceEngine(cognitive_engine.Engine):
                                 draw.rectangle(xy, width=4, outline='red', fill='red')
                                 draw.text(self.getRectangle(person)[0], text, fill='black')
 
+                            draw.bitmap((0,0), self.watermark, fill=None)
                             path = self.storage_path + str(time.time()) + ".png"
                             logger.info("Stored image: {}".format(path))
                             bb_img.save(path)
@@ -174,6 +175,7 @@ class MSFaceEngine(cognitive_engine.Engine):
         logger.info("Cognitive server endpoint: {}".format(args.endpoint))
         logger.info("Confidence Threshold: {}".format(self.threshold))
         if self.store_detections:
+            self.watermark = Image.open(os.getcwd()+"/watermark.png")
             self.storage_path = os.getcwd()+"/images/"
             try:
                 os.mkdir(self.storage_path)
@@ -320,7 +322,7 @@ class MSFaceEngine(cognitive_engine.Engine):
                                         draw.rectangle(xy, width=4, outline='red', fill='red')
                                         draw.text(self.getRectangle(face)[0], text, fill='black')
 
-
+                                    draw.bitmap((0,0), self.watermark, fill=None)
                                     path = self.storage_path + str(time.time()) + ".png"
                                     logger.info("Stored image: {}".format(path))
                                     bb_img.save(path)

@@ -26,7 +26,7 @@ import logging
 from gabriel_server import cognitive_engine
 from gabriel_protocol import gabriel_pb2
 from openscout_protocol import openscout_pb2
-from PIL import Image
+from PIL import Image, ImageDraw
 import tensorflow as tf 
 tf.compat.v1.enable_eager_execution() 
 from object_detection.utils import ops as utils_ops
@@ -103,6 +103,7 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
         logger.info("Confidence Threshold: {}".format(self.threshold))
         logger.info("Excluding the following class ids: {}".format(self.exclusions))
         if self.store_detections:
+            self.watermark = Image.open(os.getcwd()+"/watermark.png")
             self.storage_path = os.getcwd()+"/images/"
             try:
                 os.mkdir(self.storage_path)
@@ -157,9 +158,13 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
                             use_normalized_coordinates=True,
                             min_score_thresh=self.threshold,
                             line_thickness=4)
+
+                        img = Image.fromarray(image_np)
+                        draw = ImageDraw.Draw(img)
+                        draw.bitmap((0,0), self.watermark, fill=None)
                         path = self.storage_path + str(time.time()) + ".png"
                         logger.info("Stored image: {}".format(path))
-                        Image.fromarray(image_np).save(path)
+                        img.save(path)
                     except IndexError as e:
                         logger.error(e)
 
