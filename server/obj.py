@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # OpenScout
-#   - Distrubted Automated Situational Awareness
+#   - Distributed Automated Situational Awareness
 #
 #   Author: Thomas Eiszler <teiszler@andrew.cmu.edu>
 #
@@ -25,7 +25,6 @@ import logging
 import time
 import cv2
 import argparse
-import importlib
 
 SOURCE = 'openscout'
 
@@ -36,13 +35,6 @@ logger = logging.getLogger(__name__)
 def main():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
-    )
-
-    parser.add_argument(
-        "-c",
-        "--cpu-only",
-        action="store_true",
-        help="Pass this flag to prevent the GPU from being used.",
     )
 
     parser.add_argument(

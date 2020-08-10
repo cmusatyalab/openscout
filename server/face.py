@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # OpenScout
-#   - Distrubted Automated Situational Awareness
+#   - Distributed Automated Situational Awareness
 #
 #   Author: Thomas Eiszler <teiszler@andrew.cmu.edu>
 #
@@ -25,7 +25,6 @@ import logging
 import time
 import cv2
 import argparse
-import importlib
 
 SOURCE = 'openscout'
 

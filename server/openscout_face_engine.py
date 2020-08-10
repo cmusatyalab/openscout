@@ -1,5 +1,5 @@
 # OpenScout
-#   - Distrubted Automated Situational Awareness
+#   - Distributed Automated Situational Awareness
 #
 #   Author: Thomas Eiszler <teiszler@andrew.cmu.edu>
 #

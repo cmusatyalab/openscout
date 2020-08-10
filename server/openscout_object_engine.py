@@ -1,5 +1,5 @@
 # OpenScout
-#   - Distrubted Automated Situational Awareness
+#   - Distributed Automated Situational Awareness
 #
 #   Author: Thomas Eiszler <teiszler@andrew.cmu.edu>
 #
@@ -49,9 +49,8 @@ logger = logging.getLogger(__name__)
 class TFPredictor():
     def __init__(self,model_path): 
         model_name = model_path+'/saved_model'
-
         label_map_file_path = model_path+'/label_map.pbtxt'
-
+        logger.info(tf.config.experimental.list_physical_devices())
         self.detection_model = self.load_model(model_name)
         self.category_index = label_map_util.create_category_index_from_labelmap(label_map_file_path, use_display_name=True) 
         self.output_dict = None
@@ -98,10 +97,14 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
         self.detector = TFPredictor(args.model)
         self.threshold = args.threshold
         self.store_detections = args.store
-        self.exclusions = list(map(int, args.exclude.split(","))) #split string to int list
+
+        if args.exclude:
+            self.exclusions = list(map(int, args.exclude.split(","))) #split string to int list
+            logger.info("Excluding the following class ids: {}".format(self.exclusions))
+
         logger.info("TensorFlowPredictor initialized with the following model path: {}".format(args.model))
         logger.info("Confidence Threshold: {}".format(self.threshold))
-        logger.info("Excluding the following class ids: {}".format(self.exclusions))
+
         if self.store_detections:
             self.watermark = Image.open(os.getcwd()+"/watermark.png")
             self.storage_path = os.getcwd()+"/images/"
