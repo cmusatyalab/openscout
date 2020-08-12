@@ -45,6 +45,14 @@ tf.gfile = tf.io.gfile
 tf.get_logger().setLevel('ERROR')
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+
+detection_log = logging.getLogger("object-engine")
+fh = logging.FileHandler('/openscout/server/openscout-object-engine.log')
+fh.setLevel(logging.INFO)
+formatter = logging.Formatter('%(message)s')
+fh.setFormatter(formatter)
+detection_log.addHandler(fh)
 
 class TFPredictor():
     def __init__(self,model_path): 
@@ -145,7 +153,7 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
                         if i > 0:
                             r += ", "
                         r += "Detected {} ({:.3f})".format(self.detector.category_index[classes[i]]['name'],scores[i])
-
+                        detection_log.info("{},{:.3f})".format(self.detector.category_index[classes[i]]['name'],scores[i]))
             if detections_above_threshold:
                 result.payload = r.encode(encoding="utf-8")
                 result_wrapper.results.append(result)

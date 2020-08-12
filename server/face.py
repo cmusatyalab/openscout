@@ -25,6 +25,7 @@ import logging
 import time
 import cv2
 import argparse
+import subprocess
 
 SOURCE = 'openscout'
 
@@ -82,6 +83,8 @@ def main():
 
         return engine
 
+    logger.info("Starting filebeat...")
+    subprocess.call(["service", "filebeat", "start"])
     logger.info("Starting face recognition cognitive engine..")
     engine_runner.run(engine=face_engine_setup(), source_name=SOURCE, server_address=args.gabriel, all_responses_required=True)
 
