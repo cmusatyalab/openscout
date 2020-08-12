@@ -38,6 +38,8 @@ import android.graphics.YuvImage;
 import android.hardware.Camera;
 import android.hardware.Camera.PreviewCallback;
 import android.hardware.Camera.Size;
+import android.location.Location;
+import android.location.LocationManager;
 import android.text.InputFilter;
 import android.text.InputType;
 import android.view.LayoutInflater;
@@ -724,6 +726,31 @@ public class GabrielClientActivity extends Activity implements TextureView.Surfa
         return tmpBuffer.toByteArray();
     }
 
+    private double[] getGPS() {
+        LocationManager lm = (LocationManager) this.getSystemService(this.LOCATION_SERVICE);
+        List<String> providers = lm.getProviders(true);
+
+        Location loc = null;
+        double[] gps = new double[2];
+        gps[0] = 0.0;
+        gps[1] = 0.0;
+        try {
+            for (String p : providers) {
+                Log.i(LOG_TAG, "Provider: " + p);
+                loc = lm.getLastKnownLocation(p);
+                if (loc != null) {
+                    gps[0] = loc.getLatitude();
+                    gps[1] = loc.getLongitude();
+                    Log.i(LOG_TAG, "Lat: " +  gps[0] + " Long: " + gps[1]);
+                }
+            }
+        } catch(SecurityException e)  {
+            Log.e(LOG_TAG, e.getMessage());
+        }
+
+        return gps;
+    }
+
     private PreviewCallback previewCallback = new PreviewCallback() {
         // called whenever a new frame is captured
         public void onPreviewFrame(byte[] frame, Camera mCamera) {
@@ -732,7 +759,7 @@ public class GabrielClientActivity extends Activity implements TextureView.Surfa
 
                  if (GabrielClientActivity.this.openscoutcomm != null) {
                     synchronized (GabrielClientActivity.this.engineInputLock) {
-                        GabrielClientActivity.this.engineInput = new EngineInput(frame, parameters);
+                        GabrielClientActivity.this.engineInput = new EngineInput(frame, parameters, getGPS());
                         GabrielClientActivity.this.engineInputLock.notify();
                     }
                 }

@@ -19,11 +19,14 @@ import android.hardware.Camera;
 public class EngineInput {
     final private byte[] frame;
     final private Camera.Parameters parameters;
+    private double[] coords = null;
 
-    public EngineInput(byte[] frame, Camera.Parameters parameters) {
+    public EngineInput(byte[] frame, Camera.Parameters parameters, double[] coords) {
         this.frame = frame;
         this.parameters = parameters;
+        this.coords = coords;
     }
+
 
     public byte[] getFrame() {
         return frame;
@@ -32,5 +35,7 @@ public class EngineInput {
     public Camera.Parameters getParameters() {
         return parameters;
     }
+
+    public double[] getCoords() { return coords; }
 
 }
