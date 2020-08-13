@@ -37,6 +37,7 @@ import android.hardware.camera2.CameraManager;
 
 import java.util.ArrayList;
 import java.util.Map;
+import java.util.UUID;
 
 import edu.cmu.cs.gabriel.Const;
 import edu.cmu.cs.gabriel.client.socket.SocketWrapper;
@@ -80,7 +81,7 @@ public class ServerListActivity extends AppCompatActivity  {
             case R.id.about:
                 AlertDialog.Builder builder = new AlertDialog.Builder(this);
 
-                builder.setMessage(this.getString(R.string.about_message, BuildConfig.VERSION_NAME))
+                builder.setMessage(this.getString(R.string.about_message, Const.UUID, BuildConfig.VERSION_NAME))
                         .setTitle(R.string.about_title);
                 AlertDialog dialog = builder.create();
                 dialog.show();
@@ -143,12 +144,26 @@ public class ServerListActivity extends AppCompatActivity  {
 
     void initServerList() {
         Map<String, ?> prefs = mSharedPreferences.getAll();
+        boolean uuid_set = false;
         for (Map.Entry<String,?> pref : prefs.entrySet())
             if(pref.getKey().startsWith("server:")) {
                 Server s = new Server(pref.getKey().substring("server:".length()), pref.getValue().toString());
                 ItemModelList.add(s);
                 serverListAdapter.notifyDataSetChanged();
+            } else if(pref.getKey().startsWith("uuid"))
+            {
+                Const.UUID = pref.getValue().toString();
+                uuid_set = true;
             }
+
+        if(!uuid_set) {
+            //Generate UUID for device identification
+            String uniqueID = UUID.randomUUID().toString();
+            Const.UUID = uniqueID;
+            SharedPreferences.Editor editor = mSharedPreferences.edit();
+            editor.putString("uuid", uniqueID);
+            editor.commit();
+        }
 
         if (prefs.isEmpty()) {
             // Add demo server if there are no other servers present
@@ -159,7 +174,6 @@ public class ServerListActivity extends AppCompatActivity  {
             editor.putString("server:".concat(getString(R.string.demo_server)),getString(R.string.demo_dns));
             editor.commit();
         }
-
     }
 
     public void addValue(View v) {

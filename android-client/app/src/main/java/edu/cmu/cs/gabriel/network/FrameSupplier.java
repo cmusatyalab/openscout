@@ -36,8 +36,6 @@ import edu.cmu.cs.openscout.Protos.Extras;
 
 public class FrameSupplier implements Supplier<InputFrame> {
     private GabrielClientActivity gabrielClientActivity;
-    private static final String LOG_TAG = "FrameSupplier";
-    private static double[] gps = null;
 
     public FrameSupplier(GabrielClientActivity gabrielClientActivity) {
         this.gabrielClientActivity = gabrielClientActivity;
@@ -83,6 +81,7 @@ public class FrameSupplier implements Supplier<InputFrame> {
         lb.setLatitude(coords[0]);
         lb.setLongitude(coords[1]);
         extrasBuilder.setLocation(lb);
+        extrasBuilder.setCliendId(Const.UUID);
         extras = extrasBuilder.build();
 
         InputFrame inputFrame = InputFrame.newBuilder()

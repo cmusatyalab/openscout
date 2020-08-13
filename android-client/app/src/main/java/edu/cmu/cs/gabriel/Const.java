@@ -23,6 +23,8 @@ import android.preference.PreferenceManager;
 import android.content.Context;
 
 public class Const {
+    public static String UUID = "";
+
     public enum DeviceModel {
         GoogleGlass,
         Nexus6,
