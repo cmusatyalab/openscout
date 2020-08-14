@@ -19,7 +19,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='openscout.proto',
   package='openscout',
   syntax='proto3',
-  serialized_pb=_b('\n\x0fopenscout.proto\x12\topenscout\"=\n\x08Location\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x10\n\x08latitude\x18\x02 \x01(\x01\x12\x11\n\tlongitude\x18\x03 \x01(\x01\"e\n\x06\x45xtras\x12\x13\n\x0bis_training\x18\x01 \x01(\x08\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x11\n\tcliend_id\x18\x03 \x01(\t\x12%\n\x08location\x18\x04 \x01(\x0b\x32\x13.openscout.LocationB\x1e\n\x14\x65\x64u.cmu.cs.openscoutB\x06Protosb\x06proto3')
+  serialized_pb=_b('\n\x0fopenscout.proto\x12\topenscout\"=\n\x08Location\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x10\n\x08latitude\x18\x02 \x01(\x01\x12\x11\n\tlongitude\x18\x03 \x01(\x01\"e\n\x06\x45xtras\x12\x13\n\x0bis_training\x18\x01 \x01(\x08\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x11\n\tclient_id\x18\x03 \x01(\t\x12%\n\x08location\x18\x04 \x01(\x0b\x32\x13.openscout.LocationB\x1e\n\x14\x65\x64u.cmu.cs.openscoutB\x06Protosb\x06proto3')
 )
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
@@ -93,7 +93,7 @@ _EXTRAS = _descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='cliend_id', full_name='openscout.Extras.cliend_id', index=2,
+      name='client_id', full_name='openscout.Extras.client_id', index=2,
       number=3, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
