@@ -15,10 +15,14 @@
 package edu.cmu.cs.openscout;
 
 import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.location.LocationManager;
 import android.preference.PreferenceManager;
 import androidx.appcompat.app.AppCompatActivity;
+
+import android.provider.Settings;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -40,6 +44,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import edu.cmu.cs.gabriel.Const;
+import edu.cmu.cs.gabriel.GabrielClientActivity;
 import edu.cmu.cs.gabriel.client.socket.SocketWrapper;
 
 
@@ -97,6 +102,46 @@ public class ServerListActivity extends AppCompatActivity  {
         }
     }
 
+    @Override
+    protected void onStart() {
+        super.onStart();
+
+        // This verification should be done during onStart() because the system calls
+        // this method when the user returns to the activity, which ensures the desired
+        // location provider is enabled each time the activity resumes from the stopped state.
+        LocationManager locationManager =
+                (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+        final boolean gpsEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
+
+        if (!gpsEnabled) {
+            AlertDialog.Builder builder = new AlertDialog.Builder(this, AlertDialog.THEME_HOLO_DARK);
+            builder.setMessage(R.string.enable_gps_text)
+                    .setTitle(R.string.enable_gps_title)
+                    .setNegativeButton(R.string.no, new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog, int which) {
+
+                                }
+                            }
+                    )
+                    .setPositiveButton(R.string.yes, new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog, int which) {
+                                    enableLocationSettings();
+                                }
+                            }
+                    )
+                    .setCancelable(false);
+
+            AlertDialog dialog = builder.create();
+            dialog.show();
+        }
+    }
+
+    private void enableLocationSettings() {
+        Intent settingsIntent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+        startActivity(settingsIntent);
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -136,7 +181,8 @@ public class ServerListActivity extends AppCompatActivity  {
 
     void requestPermission() {
         String permissions[] = {Manifest.permission.CAMERA,
-                Manifest.permission.WRITE_EXTERNAL_STORAGE
+                Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                Manifest.permission.ACCESS_FINE_LOCATION
         };
         this.requestPermissionHelper(permissions);
     }

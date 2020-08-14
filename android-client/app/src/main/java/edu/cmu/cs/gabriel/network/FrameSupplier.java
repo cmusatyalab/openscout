@@ -81,7 +81,7 @@ public class FrameSupplier implements Supplier<InputFrame> {
         lb.setLatitude(coords[0]);
         lb.setLongitude(coords[1]);
         extrasBuilder.setLocation(lb);
-        extrasBuilder.setCliendId(Const.UUID);
+        extrasBuilder.setClientId(Const.UUID);
         extras = extrasBuilder.build();
 
         InputFrame inputFrame = InputFrame.newBuilder()

@@ -727,23 +727,23 @@ public class GabrielClientActivity extends Activity implements TextureView.Surfa
     }
 
     private double[] getGPS() {
-        LocationManager lm = (LocationManager) this.getSystemService(this.LOCATION_SERVICE);
-        List<String> providers = lm.getProviders(true);
-
-        Location loc = null;
+        LocationManager lm = (LocationManager)getSystemService(LOCATION_SERVICE);
         double[] gps = new double[2];
         gps[0] = 0.0;
         gps[1] = 0.0;
         try {
-            for (String p : providers) {
-                Log.i(LOG_TAG, "Provider: " + p);
-                loc = lm.getLastKnownLocation(p);
+            Location loc =  lm.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+            if (loc != null) {
+                gps[0] = loc.getLatitude();
+                gps[1] = loc.getLongitude();
+            } else {
+                loc = lm.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
                 if (loc != null) {
                     gps[0] = loc.getLatitude();
                     gps[1] = loc.getLongitude();
-                    Log.i(LOG_TAG, "Lat: " +  gps[0] + " Long: " + gps[1]);
                 }
             }
+            Log.d(LOG_TAG, "Lat: " +  gps[0] + " Long: " + gps[1]);
         } catch(SecurityException e)  {
             Log.e(LOG_TAG, e.getMessage());
         }
