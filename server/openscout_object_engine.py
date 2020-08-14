@@ -109,6 +109,8 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
         if args.exclude:
             self.exclusions = list(map(int, args.exclude.split(","))) #split string to int list
             logger.info("Excluding the following class ids: {}".format(self.exclusions))
+        else:
+            self.exclusions = None
 
         logger.info("TensorFlowPredictor initialized with the following model path: {}".format(args.model))
         logger.info("Confidence Threshold: {}".format(self.threshold))
@@ -128,6 +130,7 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
             status = gabriel_pb2.ResultWrapper.Status.WRONG_INPUT_FORMAT
             return cognitive_engine.create_result_wrapper(status)
 
+        extras = cognitive_engine.unpack_extras(openscout_pb2.Extras, input_frame)
         output_dict, image_np = self.process_image(input_frame.payloads[0])
 
         status = gabriel_pb2.ResultWrapper.Status.SUCCESS
@@ -147,13 +150,14 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
             r = ""
             for i in range(0, len(classes)):
                 if(scores[i] > self.threshold):
-                    if classes[i] not in self.exclusions:
+                    if self.exclusions is None or classes[i] not in self.exclusions:
                         detections_above_threshold = True
                         logger.info("Detected : {} - Score: {:.3f}".format(self.detector.category_index[classes[i]]['name'],scores[i]))
                         if i > 0:
                             r += ", "
                         r += "Detected {} ({:.3f})".format(self.detector.category_index[classes[i]]['name'],scores[i])
-                        detection_log.info("{},{:.3f})".format(self.detector.category_index[classes[i]]['name'],scores[i]))
+                        detection_log.info("{},{},{},{},{:.3f}".format(extras.client_id, extras.location.latitude, extras.location.longitude, self.detector.category_index[classes[i]]['name'],scores[i]))
+
             if detections_above_threshold:
                 result.payload = r.encode(encoding="utf-8")
                 result_wrapper.results.append(result)

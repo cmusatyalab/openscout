@@ -129,7 +129,7 @@ class OpenFaceEngine(cognitive_engine.Engine):
                             logger.debug(person)
                             if person['confidence'] > self.threshold:
                                 logger.info('Recognized: {} - Score: {:.3f}'.format(person['name'],  person['confidence']))
-                                detection_log.info("{},{:.3f})".format(person['name'],  person['confidence']))
+                                detection_log.info("{},{},{},{},{:.3f}".format(extras.client_id, extras.location.latitude, extras.location.longitude, person['name'],  person['confidence']))
                                 result = gabriel_pb2.ResultWrapper.Result()
                                 result.payload_type = gabriel_pb2.PayloadType.TEXT
                                 result.payload = 'Recognized {} ({:.3f})'.format(person['name'],  person['confidence']).encode(encoding="utf-8")
@@ -310,7 +310,7 @@ class MSFaceEngine(cognitive_engine.Engine):
                             if person.candidates[0].confidence > self.threshold:
                                 match = self.face_client.person_group_person.get(self.PERSON_GROUP_ID, person.candidates[0].person_id)
                                 logger.info('Recognized: {} - Score: {:.3f}'.format(match.name,  person.candidates[0].confidence)) # Get topmost confidence score
-                                detection_log.info("{},{:.3f})".format(match.name,  person.candidates[0].confidence))
+                                detection_log.info("{},{},{},{},{:.3f}".format(extras.client_id, extras.location.latitude, extras.location.longitude, match.name,  person.candidates[0].confidence))
                                 result = gabriel_pb2.ResultWrapper.Result()
                                 result.payload_type = gabriel_pb2.PayloadType.TEXT
                                 result.payload = 'Recognized {} ({:.3f})'.format(match.name,  person.candidates[0].confidence).encode(encoding="utf-8")
