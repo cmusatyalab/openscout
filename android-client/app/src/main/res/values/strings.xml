@@ -98,4 +98,10 @@
         <item>3</item>
     </string-array>
 
+    <string name="pref_header_gps">GPS</string>
+    <string name="pref_title_gpstime">GPS Update Frequency (milliseconds)</string>
+    <string name="pref_title_gpsdist">GPS Update Distance (meters)</string>
+
+
+
 </resources>

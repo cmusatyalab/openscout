@@ -18,6 +18,9 @@ import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.location.Location;
+import android.location.LocationListener;
 import android.location.LocationManager;
 import android.preference.PreferenceManager;
 import androidx.appcompat.app.AppCompatActivity;
@@ -49,7 +52,7 @@ import edu.cmu.cs.gabriel.client.socket.SocketWrapper;
 
 
 
-public class ServerListActivity extends AppCompatActivity  {
+public class ServerListActivity extends AppCompatActivity implements LocationListener {
     ListView listView;
     EditText serverName;
     EditText serverAddress;
@@ -112,6 +115,8 @@ public class ServerListActivity extends AppCompatActivity  {
         LocationManager locationManager =
                 (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         final boolean gpsEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
+        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, Const.GPS_UPDATE_TIME, Const.GPS_UPDATE_DIST, this);
+        locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, Const.GPS_UPDATE_TIME, Const.GPS_UPDATE_DIST, this);
 
         if (!gpsEnabled) {
             AlertDialog.Builder builder = new AlertDialog.Builder(this, AlertDialog.THEME_HOLO_DARK);
@@ -245,5 +250,25 @@ public class ServerListActivity extends AppCompatActivity  {
             editor.putString("server:".concat(name),endpoint);
             editor.commit();
         }
+    }
+
+    @Override
+    public void onLocationChanged(Location location) {
+        Log.i("ServerListActivity", "Location changed.");
+    }
+
+    @Override
+    public void onStatusChanged(String provider, int status, Bundle extras) {
+
+    }
+
+    @Override
+    public void onProviderEnabled(String provider) {
+        Log.i("ServerListActivity", String.format("Location provider %s enabled.", provider));
+    }
+
+    @Override
+    public void onProviderDisabled(String provider) {
+        Log.i("ServerListActivity", String.format("Location provider %s disabled.", provider));
     }
 }

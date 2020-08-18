@@ -28,9 +28,11 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.net.URI;
 
+import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.Rect;
 import android.graphics.SurfaceTexture;
@@ -39,6 +41,7 @@ import android.hardware.Camera;
 import android.hardware.Camera.PreviewCallback;
 import android.hardware.Camera.Size;
 import android.location.Location;
+import android.location.LocationListener;
 import android.location.LocationManager;
 import android.text.InputFilter;
 import android.text.InputType;
@@ -73,6 +76,7 @@ import android.media.MediaActionSound;
 import android.text.method.ScrollingMovementMethod;
 import android.text.method.TextKeyListener;
 
+import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import edu.cmu.cs.gabriel.network.EngineInput;
@@ -89,7 +93,7 @@ public class GabrielClientActivity extends Activity implements TextureView.Surfa
     private static final int REQUEST_CODE = 1000;
     private static int DISPLAY_WIDTH = 640;
     private static int DISPLAY_HEIGHT = 480;
-    private static int BITRATE = 1*1024*1024;
+    private static int BITRATE = 1 * 1024 * 1024;
     private static final int MEDIA_TYPE_IMAGE = 1;
     private static final int MEDIA_TYPE_VIDEO = 2;
 
@@ -215,8 +219,8 @@ public class GabrielClientActivity extends Activity implements TextureView.Surfa
         Log.v(LOG_TAG, "++onCreate");
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        getWindow().addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED+
-                WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON+
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED +
+                WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON +
                 WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         resultsView = (TextView) findViewById(R.id.resultsText);
@@ -229,10 +233,10 @@ public class GabrielClientActivity extends Activity implements TextureView.Surfa
         toggleResultsButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if(resultsView.getVisibility() == View.GONE ) {
+                if (resultsView.getVisibility() == View.GONE) {
                     findViewById(R.id.resultsText).setVisibility(View.VISIBLE);
                     toggleResultsButton.setImageDrawable(ContextCompat.getDrawable(getApplicationContext(), R.drawable.ic_results_off));
-                 } else {
+                } else {
                     findViewById(R.id.resultsText).setVisibility(View.GONE);
                     toggleResultsButton.setImageDrawable(ContextCompat.getDrawable(getApplicationContext(), R.drawable.ic_results_on));
                 }
@@ -240,12 +244,12 @@ public class GabrielClientActivity extends Activity implements TextureView.Surfa
             }
         });
 
-        if(Const.SHOW_RECORDER) {
+        if (Const.SHOW_RECORDER) {
             final ImageView recButton = findViewById(R.id.imgRecord);
             recButton.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    if(capturingScreen) {
+                    if (capturingScreen) {
                         ((ImageView) findViewById(R.id.imgRecord)).setImageDrawable(getResources().getDrawable(R.drawable.ic_baseline_videocam_24px));
                         stopRecording();
                         MediaActionSound m = new MediaActionSound();
@@ -266,10 +270,10 @@ public class GabrielClientActivity extends Activity implements TextureView.Surfa
                 @Override
                 public void onClick(View v) {
                     Bitmap b = Screenshot.takescreenshotOfRootView(preview);
-                    storeScreenshot(b,getOutputMediaFile(MEDIA_TYPE_IMAGE).getPath());
+                    storeScreenshot(b, getOutputMediaFile(MEDIA_TYPE_IMAGE).getPath());
                     screenshotButton.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS);
 
-                    }
+                }
 
             });
 
@@ -291,7 +295,7 @@ public class GabrielClientActivity extends Activity implements TextureView.Surfa
                 builder.setMessage(R.string.training_name_prompt)
                         .setTitle(context.getString(R.string.training_dialog_title));
                 final EditText input = new EditText(context);
-               // input.setKeyListener(TextKeyListener.getInstance("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_"));
+                // input.setKeyListener(TextKeyListener.getInstance("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_"));
                 input.setInputType(InputType.TYPE_TEXT_VARIATION_FILTER);
                 LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                         LinearLayout.LayoutParams.MATCH_PARENT,
@@ -367,7 +371,7 @@ public class GabrielClientActivity extends Activity implements TextureView.Surfa
         });
 
 
-        if(Const.SHOW_FPS) {
+        if (Const.SHOW_FPS) {
             findViewById(R.id.fpsLabel).setVisibility(View.VISIBLE);
             fpsHandler = new Handler();
             fpsHandler.postDelayed(fpsCalculator, 1000);

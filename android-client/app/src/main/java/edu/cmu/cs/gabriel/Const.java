@@ -49,6 +49,8 @@ public class Const {
     public static boolean IS_TRAINING = false;
     public static int TRAIN_TIME = 5000; //5 seconds
     public static String TRAINING_NAME = "";
+    public static int GPS_UPDATE_TIME = 60000; //ms - 1 minute
+    public static int GPS_UPDATE_DIST = 10; //meters
 
     // high level sensor control (on/off)
     public static boolean SENSOR_VIDEO = true;
@@ -165,6 +167,14 @@ public class Const {
                 break;
             case "experimental_token_limit":
                 Const.TOKEN_LIMIT = stringValue;
+                break;
+
+            case "gps_time":
+                Const.GPS_UPDATE_TIME = new Integer(stringValue);
+                break;
+
+            case "gps_dist":
+                Const.GPS_UPDATE_DIST = new Integer(stringValue);
                 break;
 
         }
