@@ -45,6 +45,7 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.text.InputFilter;
 import android.text.InputType;
+import android.text.Spanned;
 import android.view.LayoutInflater;
 
 import android.media.MediaRecorder;
@@ -295,8 +296,20 @@ public class GabrielClientActivity extends Activity implements TextureView.Surfa
                 builder.setMessage(R.string.training_name_prompt)
                         .setTitle(context.getString(R.string.training_dialog_title));
                 final EditText input = new EditText(context);
-                // input.setKeyListener(TextKeyListener.getInstance("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_"));
-                input.setInputType(InputType.TYPE_TEXT_VARIATION_FILTER);
+                input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD);
+                InputFilter filter = new InputFilter() {
+                    @Override
+                    public CharSequence filter(CharSequence source, int start, int end,
+                                               Spanned dest, int dstart, int dend) {
+                        for (int i = start; i < end; i++) {
+                            if (!Character.isLetter(source.charAt(i))) {
+                                return "";
+                            }
+                        }
+                        return null;
+                    }
+                };
+                input.setFilters(new InputFilter[] { filter });
                 LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                         LinearLayout.LayoutParams.MATCH_PARENT,
                         LinearLayout.LayoutParams.MATCH_PARENT);
