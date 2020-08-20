@@ -49,7 +49,7 @@ public class Const {
     public static boolean IS_TRAINING = false;
     public static int TRAIN_TIME = 5000; //5 seconds
     public static String TRAINING_NAME = "";
-    public static int GPS_UPDATE_TIME = 60000; //ms - 1 minute
+    public static int GPS_UPDATE_TIME = 10000; //ms - 10 seconds
     public static int GPS_UPDATE_DIST = 10; //meters
 
     // high level sensor control (on/off)

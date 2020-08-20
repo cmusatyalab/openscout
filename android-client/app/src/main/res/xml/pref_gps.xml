@@ -6,7 +6,7 @@
         android:title="@string/pref_title_gpstime"
         android:inputType="numberDecimal"
         android:digits="0123456789"
-        android:defaultValue="60000" />
+        android:defaultValue="10000" />
 
     <EditTextPreference
         android:key="gps_dist"
