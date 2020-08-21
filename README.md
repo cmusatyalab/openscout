@@ -103,9 +103,46 @@ docker-compose up -d
 
 If you wish to use the Microsoft Face Cognitive Service instead of OpenFace, the docker-compose.yaml file will need to be [modified](https://github.com/cmusatyalab/openscout/blob/7bda45e3ab494042fe3909f8f8620ac844d1ce79/server/docker-compose.yml#L69) to comment out the openface-service and instead use ms-face-service.
 
-### 6. Tearing down
+### 6. Create Elasticsearch index
+
+By default, Elasticsearch will dynamically create an index called `openscout` and make a best effor to infer mappings for the fields that are pushed into it. However, we can control the mappings using index templates so that some fields have explicit types (such as geo_point for the location field).  To do this, first navigate to the Kibana UI at https://localhost:5601. Under 'Manage and Administer the Elastic Stack', click 'Console'. At the console, paste the following template into the editor on the left and click the send request icon.
+
+```json
+PUT _index_template/template_1
+{
+  "index_patterns": ["openscout*"],
+  "template": {
+    "settings": {
+      "number_of_shards": 1
+    },
+    "mappings": {
+      "_source": {
+        "enabled": true
+      },
+      "properties": {
+        "location": {
+          "type": "geo_point"
+        }
+      }
+    },
+    "aliases": {
+      "mydata": { }
+    }
+  },
+  "priority": 10,
+  "version": 1,
+  "_meta": {
+    "description": "OpenScout template"
+  }
+}
+```
+
+__NOTE: This should be done prior to connecting any clients. Once the first client connects and sends data to the server, the index will be created. If the template doesn't exist beforehand, then the mappings in the template will not be used.__
+
+### 7. Tearing down
 
 Hitting CTRL-C while `docker-compose up` is running will stop the containers. However to explicitly destroy them, you can use `docker-compsoe down`. This will also destroy the networks, however the training volume (and any images that were added to the training set) will persist until explicitly deleted with `docker volume rm`.
+
 ## Android Client Installation
 
 You can download the client from the [Google Play Store](https://play.google.com/store/apps/details?id=edu.cmu.cs.openscout).
@@ -154,6 +191,15 @@ Out of the box, we have trained on three celebrities' faces: Dwayne Johnson, Sao
 Dwayne Johnson  |  Saoirse Ronan  | Hugh Jackman
 :--------------:|:---------------:|:---------------:
 <img src="server/training/dwayne_johnson/3.jpg" width="400">  |  <img src="server/training/saoirse_ronan/2.jpg" width="400"> |  <img src="server/training/hugh_jackman/1.jpg" width="400">
+
+## Exploring the data with ELK
+
+OpenScout uses ELK (Elasticsearch, Logstash, Kibana) to index the data discovered by OpenScout clients, allowing it to be explored and visualized. Three ELK containers are run alongside the core OpenScout containers. The Logstash container receives input from the object detection and face recognition cognitive engines, parses the data, and forwards it on to the Elasticsearch container. Kibana then queries the Elasticsearch container using REST APIs to discover and visualize the data that is indexed.  As OpenScout clients detect objects and faces and send the results to the server, the data is then propagated to ELK and made queryable. To start exploring the data:
+
+1. Navigate to the Kibana dashboard (https://localhost:5601).
+2. Create an index pattern for Kibana. Because the index in Elasticsearch is called `openscout`, we can use `openscout*` as the index pattern for Kibana. The default `@timestamp` field can be used as the timestamp.
+3. Now that an index pattern has been created, you can explore the data by selecting 'Discover' from the home page.
+4. Visualizations can also be created once clients have forwarded data to the server by selecting 'Visualize'.
 
 ## Credits
 
