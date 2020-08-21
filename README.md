@@ -103,6 +103,9 @@ docker-compose up -d
 
 If you wish to use the Microsoft Face Cognitive Service instead of OpenFace, the docker-compose.yaml file will need to be [modified](https://github.com/cmusatyalab/openscout/blob/7bda45e3ab494042fe3909f8f8620ac844d1ce79/server/docker-compose.yml#L69) to comment out the openface-service and instead use ms-face-service.
 
+### 6. Tearing down
+
+Hitting CTRL-C while `docker-compose up` is running will stop the containers. However to explicitly destroy them, you can use `docker-compsoe down`. This will also destroy the networks, however the training volume (and any images that were added to the training set) will persist until explicitly deleted with `docker volume rm`.
 ## Android Client Installation
 
 You can download the client from the [Google Play Store](https://play.google.com/store/apps/details?id=edu.cmu.cs.openscout).
@@ -123,6 +126,11 @@ Servers can be added by entering a server name and address and pressing the + si
 
 * Resolution - Configure the resoultion to capture at. This will have a moderate impact in the computation time on the server.
 * Gabriel Token Limit - Allows configuration of the token-based flow control mechanism in the Gabriel platform. This indicates how many frames can be in flight before a response frame is received back from the server. The minimum of the token limit specified in the app and the number of tokens specified on the server will be used.
+
+#### GPS
+
+* GPS Update Frequency - The number of milliseconds in between location updates from the location provider (either GPS or network). This can be increased to conserve battery or decreased for more frequent location changes. Default is 10 seconds.
+* GPS Update Distance - In conjunction with the update frequency, updates will not be returned to OpenScout from the location manager if the change is distance is less than the value specified. Default is 10 meters, which means that the device has to have moved more than 10 meters in the last 10 seconds for an updated location to be returned by the location manager.
 
 ### Front-facing Camera
 
