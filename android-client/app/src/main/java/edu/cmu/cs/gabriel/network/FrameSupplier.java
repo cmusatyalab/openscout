@@ -31,6 +31,7 @@ import edu.cmu.cs.gabriel.Const;
 import edu.cmu.cs.gabriel.GabrielClientActivity;
 import edu.cmu.cs.gabriel.protocol.Protos.InputFrame;
 import edu.cmu.cs.gabriel.protocol.Protos.PayloadType;
+import edu.cmu.cs.openscout.Protos;
 import edu.cmu.cs.openscout.Protos.Extras;
 
 public class FrameSupplier implements Supplier<InputFrame> {
@@ -70,17 +71,18 @@ public class FrameSupplier implements Supplier<InputFrame> {
     private static InputFrame convertEngineInput(EngineInput engineInput) {
         byte[] frame = FrameSupplier.createFrameData(engineInput);
         Extras extras;
-        // TODO: Switch to this once MobilEdgeX supports protobuf-javalite:
-        // fromClientBuilder.setEngineFields(Any.pack(engineFields));
-
+        Extras.Builder extrasBuilder = Extras.newBuilder();
         if (Const.IS_TRAINING) {
-            Extras.Builder extrasBuilder = Extras.newBuilder();
             extrasBuilder.setIsTraining(true);
             extrasBuilder.setName(Const.TRAINING_NAME);
-            extras = extrasBuilder.build();
-        } else {
-            extras= Extras.newBuilder().build();
         }
+        Protos.Location.Builder lb = Protos.Location.newBuilder();
+        double [] coords = engineInput.getCoords();
+        lb.setLatitude(coords[0]);
+        lb.setLongitude(coords[1]);
+        extrasBuilder.setLocation(lb);
+        extrasBuilder.setClientId(Const.UUID);
+        extras = extrasBuilder.build();
 
         InputFrame inputFrame = InputFrame.newBuilder()
                 .setPayloadType(PayloadType.IMAGE)

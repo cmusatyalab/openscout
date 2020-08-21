@@ -1,11 +1,1 @@
-syntax = "proto3";
-
-package openscout;
-
-option java_package = "edu.cmu.cs.openscout";
-option java_outer_classname = "Protos";
-
-message Extras {
-    bool is_training = 1;
-    string name = 2;
-}
+../../protocol/openscout.proto

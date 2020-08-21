@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <EditTextPreference
+        android:key="gps_time"
+        android:title="@string/pref_title_gpstime"
+        android:inputType="numberDecimal"
+        android:digits="0123456789"
+        android:defaultValue="10000" />
+
+    <EditTextPreference
+        android:key="gps_dist"
+        android:title="@string/pref_title_gpsdist"
+        android:inputType="numberDecimal"
+        android:digits="0123456789"
+        android:defaultValue="10" />
+
+</PreferenceScreen>

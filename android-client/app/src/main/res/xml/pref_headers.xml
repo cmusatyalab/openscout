@@ -12,4 +12,8 @@
         android:icon="@android:drawable/btn_star_big_on"
         android:title="@string/pref_header_experimental" />
 
+    <header
+        android:fragment="edu.cmu.cs.openscout.SettingsActivity$GPSPreferenceFragment"
+        android:icon="@android:drawable/ic_menu_mylocation"
+        android:title="@string/pref_header_gps" />
 </preference-headers>

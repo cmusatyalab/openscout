@@ -15,10 +15,17 @@
 package edu.cmu.cs.openscout;
 
 import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
 import android.preference.PreferenceManager;
 import androidx.appcompat.app.AppCompatActivity;
+
+import android.provider.Settings;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -37,13 +44,15 @@ import android.hardware.camera2.CameraManager;
 
 import java.util.ArrayList;
 import java.util.Map;
+import java.util.UUID;
 
 import edu.cmu.cs.gabriel.Const;
+import edu.cmu.cs.gabriel.GabrielClientActivity;
 import edu.cmu.cs.gabriel.client.socket.SocketWrapper;
 
 
 
-public class ServerListActivity extends AppCompatActivity  {
+public class ServerListActivity extends AppCompatActivity implements LocationListener {
     ListView listView;
     EditText serverName;
     EditText serverAddress;
@@ -80,7 +89,7 @@ public class ServerListActivity extends AppCompatActivity  {
             case R.id.about:
                 AlertDialog.Builder builder = new AlertDialog.Builder(this);
 
-                builder.setMessage(this.getString(R.string.about_message, BuildConfig.VERSION_NAME))
+                builder.setMessage(this.getString(R.string.about_message, Const.UUID, BuildConfig.VERSION_NAME))
                         .setTitle(R.string.about_title);
                 AlertDialog dialog = builder.create();
                 dialog.show();
@@ -96,6 +105,48 @@ public class ServerListActivity extends AppCompatActivity  {
         }
     }
 
+    @Override
+    protected void onStart() {
+        super.onStart();
+
+        // This verification should be done during onStart() because the system calls
+        // this method when the user returns to the activity, which ensures the desired
+        // location provider is enabled each time the activity resumes from the stopped state.
+        LocationManager locationManager =
+                (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+        final boolean gpsEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
+        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, Const.GPS_UPDATE_TIME, Const.GPS_UPDATE_DIST, this);
+        locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, Const.GPS_UPDATE_TIME, Const.GPS_UPDATE_DIST, this);
+
+        if (!gpsEnabled) {
+            AlertDialog.Builder builder = new AlertDialog.Builder(this, AlertDialog.THEME_HOLO_DARK);
+            builder.setMessage(R.string.enable_gps_text)
+                    .setTitle(R.string.enable_gps_title)
+                    .setNegativeButton(R.string.no, new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog, int which) {
+
+                                }
+                            }
+                    )
+                    .setPositiveButton(R.string.yes, new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog, int which) {
+                                    enableLocationSettings();
+                                }
+                            }
+                    )
+                    .setCancelable(false);
+
+            AlertDialog dialog = builder.create();
+            dialog.show();
+        }
+    }
+
+    private void enableLocationSettings() {
+        Intent settingsIntent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+        startActivity(settingsIntent);
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -135,7 +186,8 @@ public class ServerListActivity extends AppCompatActivity  {
 
     void requestPermission() {
         String permissions[] = {Manifest.permission.CAMERA,
-                Manifest.permission.WRITE_EXTERNAL_STORAGE
+                Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                Manifest.permission.ACCESS_FINE_LOCATION
         };
         this.requestPermissionHelper(permissions);
     }
@@ -143,12 +195,26 @@ public class ServerListActivity extends AppCompatActivity  {
 
     void initServerList() {
         Map<String, ?> prefs = mSharedPreferences.getAll();
+        boolean uuid_set = false;
         for (Map.Entry<String,?> pref : prefs.entrySet())
             if(pref.getKey().startsWith("server:")) {
                 Server s = new Server(pref.getKey().substring("server:".length()), pref.getValue().toString());
                 ItemModelList.add(s);
                 serverListAdapter.notifyDataSetChanged();
+            } else if(pref.getKey().startsWith("uuid"))
+            {
+                Const.UUID = pref.getValue().toString();
+                uuid_set = true;
             }
+
+        if(!uuid_set) {
+            //Generate UUID for device identification
+            String uniqueID = UUID.randomUUID().toString();
+            Const.UUID = uniqueID;
+            SharedPreferences.Editor editor = mSharedPreferences.edit();
+            editor.putString("uuid", uniqueID);
+            editor.commit();
+        }
 
         if (prefs.isEmpty()) {
             // Add demo server if there are no other servers present
@@ -159,7 +225,6 @@ public class ServerListActivity extends AppCompatActivity  {
             editor.putString("server:".concat(getString(R.string.demo_server)),getString(R.string.demo_dns));
             editor.commit();
         }
-
     }
 
     public void addValue(View v) {
@@ -185,5 +250,25 @@ public class ServerListActivity extends AppCompatActivity  {
             editor.putString("server:".concat(name),endpoint);
             editor.commit();
         }
+    }
+
+    @Override
+    public void onLocationChanged(Location location) {
+        Log.i("ServerListActivity", "Location changed.");
+    }
+
+    @Override
+    public void onStatusChanged(String provider, int status, Bundle extras) {
+
+    }
+
+    @Override
+    public void onProviderEnabled(String provider) {
+        Log.i("ServerListActivity", String.format("Location provider %s enabled.", provider));
+    }
+
+    @Override
+    public void onProviderDisabled(String provider) {
+        Log.i("ServerListActivity", String.format("Location provider %s disabled.", provider));
     }
 }

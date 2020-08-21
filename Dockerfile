@@ -15,6 +15,7 @@ RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
     python3-pyqt5 \
+    wget \
  && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 #upgrade pip, otherwise tensorflow 1.15.0 will not be found
@@ -30,12 +31,19 @@ RUN python3 -m pip install --no-cache-dir \
     'setuptools==41.0.0' \
     'websockets==8.0.0' \
     zmq 
+#Install Filebeats to push log data to ELK
+RUN wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | apt-key add -
+RUN echo "deb https://artifacts.elastic.co/packages/oss-7.x/apt stable main" | tee -a /etc/apt/sources.list.d/elastic-7.x.list
+RUN apt-get update && apt-get install -y \
+    filebeat \
+ && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # You can speed up build slightly by reducing build context with
 #     git archive --format=tgz HEAD | docker build -t openscout -
 COPY . openscout
 WORKDIR openscout/server
 RUN python3 -m pip install -r requirements.txt
+COPY ./server/elk/filebeat.yml /etc/filebeat/filebeat.yml
 
 EXPOSE 5555 9099
 ENTRYPOINT ["./entrypoint.sh"]
