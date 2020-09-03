@@ -63,8 +63,8 @@ public class ServerListActivity extends AppCompatActivity implements LocationLis
     private SharedPreferences mSharedPreferences;
     private static final int MY_PERMISSIONS_REQUEST_CAMERA = 23;
 
-    void loadPref(Context c, String key, Object value) {
-        Const.loadPref(c, key, value);
+    void loadPref(SharedPreferences sharedPreferences, String key) {
+        Const.loadPref(sharedPreferences, key);
     }
 
     ServerListAdapter createServerListAdapter() {
@@ -96,8 +96,6 @@ public class ServerListActivity extends AppCompatActivity implements LocationLis
                 return true;
             case R.id.settings:
                 Intent intent = new Intent(this, SettingsActivity.class);
-                //intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                //intent.putExtra("", faceTable);
                 this.startActivity(intent);
                 return true;
             default:
@@ -168,7 +166,7 @@ public class ServerListActivity extends AppCompatActivity implements LocationLis
         for(Map.Entry<String,?> entry : m.entrySet()){
             Log.d("SharedPreferences",entry.getKey() + ": " +
                     entry.getValue().toString());
-            this.loadPref(this.getApplicationContext(), entry.getKey(), entry.getValue());
+            this.loadPref(mSharedPreferences, entry.getKey());
 
         }
         camMan = (CameraManager) getSystemService(Context.CAMERA_SERVICE);

@@ -8,7 +8,7 @@
     <!-- activity_serverlist.xml -->
     <string name="options_heading">Options</string>
     <string name="pref_title_recording">Show Screenshot/Recording Buttons</string>
-    <string name="show_fps">Display Metrics (FPS and Average RTT)</string>
+    <string name="show_detections">Display Number of Detections</string>
     <string name="camera_option">Show Camera Toggling Button</string>
     <string name="serverlist_heading">Server List</string>
     <string name="name_subheading">Name</string>
@@ -65,8 +65,10 @@
     <!-- Strings related to Settings -->
     <!-- Example General settings -->
     <string name="pref_header_general">General</string>
+    <string name="pref_header_ui">UI</string>
 
     <string name="pref_title_token_limit">Gabriel Token Limit</string>
+    <string name="token_limit_summary">Controls how many frames can be in flight to Gabriel server</string>
     <string-array name="pref_token_list_titles">
         <item>No limit</item>
         <item>1 frame</item>
@@ -86,7 +88,7 @@
 
     <string name="pref_header_experimental">Experimental</string>
 
-    <string name="pref_title_resolution">Image Resolution</string>
+    <string name="pref_title_resolution">Camera Resolution</string>
     <string-array name="pref_resolution_titles">
         <item>320x240 px</item>
         <item>640x480 px</item>
@@ -98,10 +100,11 @@
         <item>3</item>
     </string-array>
 
-    <string name="pref_header_gps">GPS</string>
-    <string name="pref_title_gpstime">GPS Update Frequency (milliseconds)</string>
-    <string name="pref_title_gpsdist">GPS Update Distance (meters)</string>
-
+    <string name="pref_header_gps">Location (GPS/Network) Updates</string>
+    <string name="pref_title_gpstime">Frequency (milliseconds)</string>
+    <string name="pref_title_gpsdist">Distance (meters)</string>
+    <string name="pref_results_opacity">Results Pane Opacity %</string>
+    <string name="pref_show_training">Show Face Training Icon</string>
 
 
 </resources>

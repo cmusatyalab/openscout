@@ -45,10 +45,12 @@ public class Const {
     public static boolean USING_FRONT_CAMERA = false;
     public static boolean FRONT_ROTATION = false;
     public static boolean SHOW_RECORDER = true;
-    public static boolean SHOW_FPS = true;
+    public static boolean SHOW_DETECTIONS = true;
+    public static boolean SHOW_TRAINING_ICON = true;
     public static boolean IS_TRAINING = false;
     public static int TRAIN_TIME = 5000; //5 seconds
     public static String TRAINING_NAME = "";
+    public static float RESULTS_OPACITY = 0.5f;
     public static int GPS_UPDATE_TIME = 10000; //ms - 10 seconds
     public static int GPS_UPDATE_DIST = 10; //meters
 
@@ -129,28 +131,23 @@ public class Const {
     // control log file
     public static final File CONTROL_LOG_FILE = new File(ROOT_DIR.getAbsolutePath() + File.separator + "exp" + File.separator + "control_log.txt");
 
-    public static void loadPref(Context c, String key, Object value) {
-        String stringValue = value.toString();
+    public static void loadPref(SharedPreferences sharedPreferences, String key) {
         Boolean b = null;
         Integer i = null;
         //update Const values so that new settings take effect
         switch(key) {
             case "general_recording":
-                Const.SHOW_RECORDER = new Boolean(value.toString());
+                Const.SHOW_RECORDER = sharedPreferences.getBoolean(key, false);
                 break;
-            case "general_show_fps":
-                b = new Boolean(value.toString());
-                Const.SHOW_FPS = b;
-                if(b) {
-                    SharedPreferences.Editor editor = PreferenceManager
-                            .getDefaultSharedPreferences(c)
-                            .edit();
-                    editor.putBoolean("general_stereoscopic", false);
-                    editor.commit();
-                }
+            case "ui_show_training_icon":
+                Const.SHOW_TRAINING_ICON = sharedPreferences.getBoolean(key, false);
+                break;
+            case "general_show_detections":
+                b = sharedPreferences.getBoolean(key, false);
+                Const.SHOW_DETECTIONS = b;
                 break;
             case "experimental_resolution":
-                i = new Integer(stringValue);
+                i = new Integer(sharedPreferences.getString(key, "1"));
                 if(i == 1) {
                     Const.IMAGE_HEIGHT = 240;
                     Const.IMAGE_WIDTH = 320;
@@ -165,16 +162,19 @@ public class Const {
                     Const.IMAGE_WIDTH = 320;
                 }
                 break;
+            case "ui_results_opacity":
+                Const.RESULTS_OPACITY =  sharedPreferences.getInt(key, 100)/100f;
+                break;
             case "experimental_token_limit":
-                Const.TOKEN_LIMIT = stringValue;
+                Const.TOKEN_LIMIT = sharedPreferences.getString(key, "2");;
                 break;
 
             case "gps_time":
-                Const.GPS_UPDATE_TIME = new Integer(stringValue);
+                Const.GPS_UPDATE_TIME = new Integer(sharedPreferences.getString(key, "10000"));
                 break;
 
             case "gps_dist":
-                Const.GPS_UPDATE_DIST = new Integer(stringValue);
+                Const.GPS_UPDATE_DIST = new Integer(sharedPreferences.getString(key, "10"));
                 break;
 
         }

@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <PreferenceCategory
+        app:icon="@android:drawable/ic_menu_preferences"
+        app:key="general_category"
+        app:title="@string/pref_header_general">
+
+        <ListPreference
+            app:defaultValue="1"
+            app:entries="@array/pref_resolution_titles"
+            app:entryValues="@array/pref_resolution_values"
+            app:key="experimental_resolution"
+            app:negativeButtonText="@null"
+            app:positiveButtonText="@null"
+            app:title="@string/pref_title_resolution"
+            app:useSimpleSummaryProvider="true" />
+
+        <ListPreference
+            android:summary="Blah blah"
+            app:defaultValue="None"
+            app:entries="@array/pref_token_list_titles"
+            app:entryValues="@array/pref_token_list_values"
+            app:key="experimental_token_limit"
+            app:negativeButtonText="@null"
+            app:positiveButtonText="@null"
+            app:summary="@string/token_limit_summary"
+            app:title="@string/pref_title_token_limit"
+            app:useSimpleSummaryProvider="true" />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        app:icon="@android:drawable/ic_menu_crop"
+        app:key="ui_category"
+        app:title="@string/pref_header_ui">
+
+        <SwitchPreferenceCompat
+            app:defaultValue="true"
+            app:key="general_recording"
+            app:title="@string/pref_title_recording" />
+
+        <SwitchPreferenceCompat
+            app:defaultValue="true"
+            app:key="general_show_detections"
+            app:title="@string/show_detections" />
+
+        <SwitchPreferenceCompat
+            app:defaultValue="true"
+            app:key="ui_show_training_icon"
+            app:title="@string/pref_show_training" />
+
+        <SeekBarPreference
+            android:max="100"
+            android:defaultValue="50"
+            android:min="0"
+            app:key="ui_results_opacity"
+            app:showSeekBarValue="true"
+            app:title="@string/pref_results_opacity" />
+
+    </PreferenceCategory>
+    <PreferenceCategory
+        app:icon="@android:drawable/ic_menu_mylocation"
+        app:key="gps_category"
+        app:title="@string/pref_header_gps">
+
+        <EditTextPreference
+            app:useSimpleSummaryProvider="true"
+            app:defaultValue="10000"
+            android:digits="0123456789"
+            android:inputType="numberDecimal"
+            app:key="gps_time"
+            app:title="@string/pref_title_gpstime" />
+
+        <EditTextPreference
+            app:useSimpleSummaryProvider="true"
+            app:defaultValue="10"
+            android:digits="0123456789"
+            android:inputType="numberDecimal"
+            app:key="gps_dist"
+            app:title="@string/pref_title_gpsdist" />
+
+    </PreferenceCategory>
+
+</PreferenceScreen>

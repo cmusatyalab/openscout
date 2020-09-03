@@ -125,7 +125,7 @@
         android:layout_width="0dp"
         android:layout_height="128dp"
         android:alpha="1"
-        android:background="#40FFFFFF"
+        android:background="#FFFFFFFF"
         android:enabled="true"
         android:fontFamily="monospace"
         android:gravity="start|top"

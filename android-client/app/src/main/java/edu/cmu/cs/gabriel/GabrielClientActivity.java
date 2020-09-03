@@ -28,11 +28,8 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.net.URI;
 
-import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
-import android.content.SharedPreferences;
-import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.Rect;
 import android.graphics.SurfaceTexture;
@@ -41,7 +38,6 @@ import android.hardware.Camera;
 import android.hardware.Camera.PreviewCallback;
 import android.hardware.Camera.Size;
 import android.location.Location;
-import android.location.LocationListener;
 import android.location.LocationManager;
 import android.text.InputFilter;
 import android.text.InputType;
@@ -75,9 +71,7 @@ import android.content.DialogInterface;
 import android.net.Uri;
 import android.media.MediaActionSound;
 import android.text.method.ScrollingMovementMethod;
-import android.text.method.TextKeyListener;
 
-import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import edu.cmu.cs.gabriel.network.EngineInput;
@@ -106,7 +100,6 @@ public class GabrielClientActivity extends Activity implements TextureView.Surfa
     private boolean isRunning = false;
     private boolean isFirstExperiment = true;
 
-    //private CameraPreview preview = null;
     private Camera mCamera = null;
     private List<int[]> supportingFPS = null;
     private List<Camera.Size> supportingSize = null;
@@ -228,6 +221,7 @@ public class GabrielClientActivity extends Activity implements TextureView.Surfa
         resultsView.setFocusableInTouchMode(false);
         resultsView.clearFocus();
         resultsView.setMovementMethod(new ScrollingMovementMethod());
+        resultsView.setAlpha(Const.RESULTS_OPACITY);
         fpsLabel = (TextView) findViewById(R.id.fpsLabel);
 
         final ImageView toggleResultsButton = findViewById(R.id.imgResultsToggle);
@@ -384,10 +378,17 @@ public class GabrielClientActivity extends Activity implements TextureView.Surfa
         });
 
 
-        if (Const.SHOW_FPS) {
+        if (Const.SHOW_DETECTIONS) {
             findViewById(R.id.fpsLabel).setVisibility(View.VISIBLE);
             fpsHandler = new Handler();
             fpsHandler.postDelayed(fpsCalculator, 1000);
+        }
+
+
+        if (Const.SHOW_TRAINING_ICON) {
+            findViewById(R.id.imgTrain).setVisibility(View.VISIBLE);
+        } else {
+            findViewById(R.id.imgTrain).setVisibility(View.GONE);
         }
 
         DisplayMetrics metrics = new DisplayMetrics();
