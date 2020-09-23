@@ -44,6 +44,7 @@ COPY . openscout
 WORKDIR openscout/server
 RUN python3 -m pip install -r requirements.txt
 COPY ./server/elk/filebeat.yml /etc/filebeat/filebeat.yml
+RUN chmod go-w /etc/filebeat/filebeat.yml
 
 EXPOSE 5555 9099
 ENTRYPOINT ["./entrypoint.sh"]
