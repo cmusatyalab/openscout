@@ -6,9 +6,9 @@
     android:layout_height="match_parent"
     android:visibility="visible">
 
-    <TextureView
+    <androidx.camera.view.PreviewView
         android:id="@+id/camera_preview"
-        android:layout_width="0dp"
+        android:layout_width="match_parent"
         android:layout_height="match_parent"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -26,7 +26,7 @@
         android:hapticFeedbackEnabled="true"
         android:rotation="0"
         android:src="@drawable/ic_train"
-        android:tint="@color/colorPrimary"
+        app:tint="@color/colorPrimary"
         android:visibility="visible"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toStartOf="@+id/imgRecord" />
@@ -43,7 +43,7 @@
         android:hapticFeedbackEnabled="true"
         android:rotation="0"
         android:src="@drawable/ic_results_off"
-        android:tint="@color/colorPrimary"
+        app:tint="@color/colorPrimary"
         android:visibility="visible"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
@@ -59,7 +59,7 @@
         android:hapticFeedbackEnabled="true"
         android:rotation="0"
         android:src="@drawable/ic_baseline_videocam_24px"
-        android:tint="@color/colorPrimary"
+        app:tint="@color/colorPrimary"
         android:visibility="visible"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toStartOf="@+id/imgScreenshot" />
@@ -73,7 +73,7 @@
         android:focusable="false"
         android:hapticFeedbackEnabled="true"
         android:src="@drawable/ic_baseline_photo_24px"
-        android:tint="@color/colorPrimary"
+        app:tint="@color/colorPrimary"
         android:visibility="visible"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
@@ -87,7 +87,7 @@
         android:focusable="false"
         android:hapticFeedbackEnabled="true"
         android:src="@drawable/ic_baseline_camera_front_24px"
-        android:tint="@color/colorPrimary"
+        app:tint="@color/colorPrimary"
         android:visibility="gone"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
@@ -101,7 +101,7 @@
         android:focusable="false"
         android:hapticFeedbackEnabled="true"
         android:src="@drawable/ic_baseline_rotate_left_24px"
-        android:tint="@color/colorPrimary"
+        app:tint="@color/colorPrimary"
         android:visibility="gone"
         app:layout_constraintEnd_toStartOf="@+id/imgSwitchCam"
         app:layout_constraintTop_toTopOf="parent" />

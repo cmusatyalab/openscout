@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package edu.cmu.cs.gabriel;
+package edu.cmu.cs.openscout;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -27,6 +27,7 @@ import java.util.TimerTask;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.net.URI;
+import java.util.function.Consumer;
 
 import android.app.Activity;
 import android.content.Intent;
@@ -72,22 +73,35 @@ import android.net.Uri;
 import android.media.MediaActionSound;
 import android.text.method.ScrollingMovementMethod;
 
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.camera.core.CameraSelector;
+import androidx.camera.core.ImageAnalysis;
+import androidx.camera.core.ImageProxy;
+import androidx.camera.view.PreviewView;
 import androidx.core.content.ContextCompat;
 
-import edu.cmu.cs.gabriel.network.EngineInput;
-import edu.cmu.cs.gabriel.network.FrameSupplier;
-import edu.cmu.cs.gabriel.network.NetworkProtocol;
-import edu.cmu.cs.gabriel.network.OpenScoutComm;
+import com.google.protobuf.Any;
+import com.google.protobuf.ByteString;
+
+import edu.cmu.cs.gabriel.Const;
+import edu.cmu.cs.gabriel.camera.CameraCapture;
+import edu.cmu.cs.gabriel.camera.YuvToJPEGConverter;
+import edu.cmu.cs.gabriel.client.comm.ServerComm;
+import edu.cmu.cs.gabriel.client.results.ErrorType;
+import edu.cmu.cs.gabriel.protocol.Protos.InputFrame;
+import edu.cmu.cs.gabriel.protocol.Protos.ResultWrapper;
+import edu.cmu.cs.gabriel.protocol.Protos.PayloadType;
+import edu.cmu.cs.openscout.Protos.Extras;
 import edu.cmu.cs.gabriel.util.Screenshot;
-import edu.cmu.cs.openscout.R;
 
 
-public class GabrielClientActivity extends Activity implements TextureView.SurfaceTextureListener {
+public class GabrielClientActivity extends AppCompatActivity {
 
     private static final String LOG_TAG = "GabrielClientActivity";
     private static final int REQUEST_CODE = 1000;
-    private static int DISPLAY_WIDTH = 640;
-    private static int DISPLAY_HEIGHT = 480;
+    private static int DISPLAY_WIDTH = Const.IMAGE_WIDTH;
+    private static int DISPLAY_HEIGHT = Const.IMAGE_HEIGHT;
     private static int BITRATE = 1 * 1024 * 1024;
     private static final int MEDIA_TYPE_IMAGE = 1;
     private static final int MEDIA_TYPE_VIDEO = 2;
@@ -95,21 +109,11 @@ public class GabrielClientActivity extends Activity implements TextureView.Surfa
     // major components for streaming sensor data and receiving information
     String serverIP = null;
 
-    OpenScoutComm openscoutcomm;
+    ServerComm openscoutcomm;
 
-    private boolean isRunning = false;
-    private boolean isFirstExperiment = true;
-
-    private Camera mCamera = null;
-    private List<int[]> supportingFPS = null;
-    private List<Camera.Size> supportingSize = null;
-    private boolean isSurfaceReady = false;
-    private boolean waitingToStart = false;
-    private boolean isPreviewing = false;
-    public byte[] reusedBuffer = null;
-
-    private TextureView preview;
-    private SurfaceTexture mSurfaceTexture;
+    private YuvToJPEGConverter yuvToJPEGConverter;
+    private CameraCapture cameraCapture;
+    private PreviewView preview;
 
     private MediaController mediaController = null;
     private int mScreenDensity;
@@ -121,92 +125,13 @@ public class GabrielClientActivity extends Activity implements TextureView.Surfa
     private boolean recordingInitiated = false;
     private String mOutputPath = null;
 
-    private FileWriter controlLogWriter = null;
-
     // views
     private TextView resultsView = null;
     private Handler fpsHandler = null;
     private Handler timer = null;
-    private int cameraId = 0;
-    private boolean imageRotate = false;
     private TextView fpsLabel = null;
 
     private int detections = 0;
-    private EngineInput engineInput;
-    final private Object engineInputLock = new Object();
-    private FrameSupplier frameSupplier = new FrameSupplier(this);
-
-    // Background threads based on
-    // https://github.com/googlesamples/android-Camera2Basic/blob/master/Application/src/main/java/com/example/android/camera2basic/Camera2BasicFragment.java#L652
-    /**
-     * Thread for running tasks that shouldn't block the UI.
-     */
-    private HandlerThread backgroundThread;
-
-    /**
-     * A {@link Handler} for running tasks in the background.
-     */
-    private Handler backgroundHandler;
-
-    /**
-     * Starts a background thread and its {@link Handler}.
-     */
-    private void startBackgroundThread() {
-        backgroundThread = new HandlerThread("ImageUpload");
-        backgroundThread.start();
-        backgroundHandler = new Handler(backgroundThread.getLooper());
-
-        backgroundHandler.post(imageUpload);
-    }
-
-    /**
-     * Stops the background thread and its {@link Handler}.
-     */
-    private void stopBackgroundThread() {
-        openscoutcomm.stop();
-        backgroundThread.quitSafely();
-
-        // Will stop backgroundThread.join() from blocking if backgroundThread is currently blocked
-        // on a call to wait()
-        backgroundThread.interrupt();
-
-        try {
-            backgroundThread.join();
-            backgroundThread = null;
-            backgroundHandler = null;
-        } catch (InterruptedException e) {
-            Log.e(LOG_TAG, "Problem stopping background thread", e);
-        }
-    }
-
-    public EngineInput getEngineInput() {
-        EngineInput engineInput;
-        synchronized (this.engineInputLock) {
-            try {
-                while (isRunning && this.engineInput == null) {
-                    engineInputLock.wait();
-                }
-
-                engineInput = this.engineInput;
-                this.engineInput = null;  // Prevent sending the same frame again
-            } catch (/* InterruptedException */ Exception e) {
-                Log.e(LOG_TAG, "Error waiting for engine input", e);
-                return null;
-            }
-        }
-        return engineInput;
-    }
-
-    private Runnable imageUpload = new Runnable() {
-        @Override
-        public void run() {
-            openscoutcomm.sendSupplier(GabrielClientActivity.this.frameSupplier);
-
-            if (isRunning) {
-                backgroundHandler.post(imageUpload);
-            }
-        }
-    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -216,6 +141,9 @@ public class GabrielClientActivity extends Activity implements TextureView.Surfa
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED +
                 WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON +
                 WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+
+        yuvToJPEGConverter = new YuvToJPEGConverter(this);
+        cameraCapture = new CameraCapture(this, analyzer, Const.IMAGE_WIDTH, Const.IMAGE_HEIGHT, preview, CameraSelector.DEFAULT_BACK_CAMERA);
 
         resultsView = (TextView) findViewById(R.id.resultsText);
         resultsView.setFocusableInTouchMode(false);
@@ -337,43 +265,30 @@ public class GabrielClientActivity extends Activity implements TextureView.Surfa
         });
 
         final ImageView camButton = (ImageView) findViewById(R.id.imgSwitchCam);
-        final ImageView rotateButton = (ImageView) findViewById(R.id.imgRotate);
         camButton.setVisibility(View.VISIBLE);
         camButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 camButton.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS);
-                mCamera.setPreviewCallback(null);
-                CameraClose();
-                if (cameraId > 0) {
-                    camButton.setImageDrawable(getResources().getDrawable(R.drawable.ic_baseline_camera_front_24px));
+                if (Const.USING_FRONT_CAMERA) {
+                    camButton.setImageResource(R.drawable.ic_baseline_camera_front_24px);
+
+                    cameraCapture = new CameraCapture(
+                            GabrielClientActivity.this, analyzer, Const.IMAGE_WIDTH,
+                            Const.IMAGE_HEIGHT, preview, CameraSelector.DEFAULT_BACK_CAMERA);
+
                     Const.USING_FRONT_CAMERA = false;
-                    cameraId = 0;
-                    rotateButton.setVisibility(View.GONE);
                 } else {
-                    camButton.setImageDrawable(getResources().getDrawable(R.drawable.ic_baseline_camera_rear_24px));
-                    cameraId = findFrontFacingCamera();
+                    camButton.setImageResource(R.drawable.ic_baseline_camera_rear_24px);
+
+                    cameraCapture = new CameraCapture(
+                            GabrielClientActivity.this, analyzer, Const.IMAGE_WIDTH,
+                            Const.IMAGE_HEIGHT, preview, CameraSelector.DEFAULT_FRONT_CAMERA);
+
                     Const.USING_FRONT_CAMERA = true;
-                    rotateButton.setVisibility(View.VISIBLE);
                 }
-                mSurfaceTexture = preview.getSurfaceTexture();
-                mCamera = checkCamera();
-                CameraStart();
-                mCamera.setPreviewCallbackWithBuffer(previewCallback);
-                reusedBuffer = new byte[1920 * 1080 * 3 / 2]; // 1.5 bytes per pixel
-                mCamera.addCallbackBuffer(reusedBuffer);
 
-            }
-        });
 
-        rotateButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-
-                imageRotate = !imageRotate;
-                Const.FRONT_ROTATION = !Const.FRONT_ROTATION;
-                preview.setRotation(180 - preview.getRotation());
-                rotateButton.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS);
             }
         });
 
@@ -383,7 +298,6 @@ public class GabrielClientActivity extends Activity implements TextureView.Surfa
             fpsHandler = new Handler();
             fpsHandler.postDelayed(fpsCalculator, 1000);
         }
-
 
         if (Const.SHOW_TRAINING_ICON) {
             findViewById(R.id.imgTrain).setVisibility(View.VISIBLE);
@@ -420,43 +334,16 @@ public class GabrielClientActivity extends Activity implements TextureView.Surfa
         }
     }
 
-    private int findFrontFacingCamera() {
-        int cameraId = -1;
-        // Search for the front facing camera
-        int numberOfCameras = Camera.getNumberOfCameras();
-        for (int i = 0; i < numberOfCameras; i++) {
-            Camera.CameraInfo info = new Camera.CameraInfo();
-            Camera.getCameraInfo(i, info);
-            if (info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
-                    Log.d(LOG_TAG, "Front facing camera found");
-                    cameraId = i;
-                    break;
-                }
-        }
-        return cameraId;
-    }
-
     @Override
     protected void onResume() {
         Log.v(LOG_TAG, "++onResume");
         super.onResume();
 
-        // dim the screen
-//        WindowManager.LayoutParams lp = getWindow().getAttributes();
-//        lp.dimAmount = 1.0f;
-//        lp.screenBrightness = 0.01f;
-//        getWindow().setAttributes(lp);
-
         initOnce();
-        if (Const.IS_EXPERIMENT) { // experiment mode
-            runExperiments();
-        } else { // demo mode
-            serverIP = Const.SERVER_IP;
-            initPerRun(serverIP);
-        }
+        Intent intent = getIntent();
+        serverIP = intent.getStringExtra("SERVER_IP");
+        initPerRun(serverIP);
     }
-
-
 
     @Override
     protected void onPause() {
@@ -523,6 +410,7 @@ public class GabrielClientActivity extends Activity implements TextureView.Surfa
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
         if (requestCode != REQUEST_CODE) {
             Log.e(LOG_TAG, "Unknown request code: " + requestCode);
             return;
@@ -615,27 +503,15 @@ public class GabrielClientActivity extends Activity implements TextureView.Surfa
         Log.v(LOG_TAG, "++initOnce");
 
         if (Const.SENSOR_VIDEO) {
-            preview = (TextureView) findViewById(R.id.camera_preview);
+            preview = findViewById(R.id.camera_preview);
 
-            mSurfaceTexture = preview.getSurfaceTexture();
-            preview.setSurfaceTextureListener(this);
-            mCamera = checkCamera();
-            CameraStart();
-            mCamera.setPreviewCallbackWithBuffer(previewCallback);
-            reusedBuffer = new byte[1920 * 1080 * 3 / 2]; // 1.5 bytes per pixel
-            mCamera.addCallbackBuffer(reusedBuffer);
-        }
-
-        Const.ROOT_DIR.mkdirs();
-        Const.EXP_DIR.mkdirs();
-
+              }
 
         // Media controller
         if (mediaController == null) {
             mediaController = new MediaController(this);
         }
 
-        isRunning = true;
     }
 
     /**
@@ -644,33 +520,12 @@ public class GabrielClientActivity extends Activity implements TextureView.Surfa
      */
     private void initPerRun(String serverIP) {
         Log.v(LOG_TAG, "++initPerRun");
-
-        if (Const.IS_EXPERIMENT) {
-            if (isFirstExperiment) {
-                isFirstExperiment = false;
-            } else {
-                try {
-                    Thread.sleep(20 * 1000);
-                } catch (InterruptedException e) {}
-                // wait a while for ping to finish...
-                try {
-                    Thread.sleep(5 * 1000);
-                } catch (InterruptedException e) {}
-            }
-        }
-
+        preview = findViewById(R.id.camera_preview);
+        cameraCapture = new CameraCapture(
+                this, analyzer, Const.IMAGE_WIDTH, Const.IMAGE_HEIGHT,
+                preview, CameraSelector.DEFAULT_BACK_CAMERA);
         if (serverIP == null) return;
-
-        if (Const.IS_EXPERIMENT) {
-            try {
-                controlLogWriter = new FileWriter(Const.CONTROL_LOG_FILE);
-            } catch (IOException e) {
-                Log.e(LOG_TAG, "Control log file cannot be properly opened", e);
-            }
-        }
-
         this.setupComm();
-        this.startBackgroundThread();
     }
 
     int getPort() {
@@ -681,67 +536,88 @@ public class GabrielClientActivity extends Activity implements TextureView.Surfa
         return port;
     }
 
+    // Based on
+    // https://github.com/protocolbuffers/protobuf/blob/master/src/google/protobuf/compiler/java/java_message.cc#L1387
+    private static Any pack(Extras engineFields) {
+        return Any.newBuilder()
+                .setTypeUrl("type.googleapis.com/openscout.Extras")
+                .setValue(engineFields.toByteString())
+                .build();
+    }
+
+    final private ImageAnalysis.Analyzer analyzer = new ImageAnalysis.Analyzer() {
+        @Override
+        public void analyze(@NonNull ImageProxy image) {
+            openscoutcomm.sendSupplier(() -> {
+                ByteString jpegByteString = yuvToJPEGConverter.convert(image);
+
+                Extras extras;
+                Extras.Builder extrasBuilder = Extras.newBuilder();
+                if (Const.IS_TRAINING) {
+                    extrasBuilder.setIsTraining(true);
+                    extrasBuilder.setName(Const.TRAINING_NAME);
+                }
+                Protos.Location.Builder lb = Protos.Location.newBuilder();
+                double [] coords = getGPS();
+                lb.setLatitude(coords[0]);
+                lb.setLongitude(coords[1]);
+                extrasBuilder.setLocation(lb);
+                extrasBuilder.setClientId(Const.UUID);
+                extras = extrasBuilder.build();
+
+                return InputFrame.newBuilder()
+                        .setPayloadType(PayloadType.IMAGE)
+                        .addPayloads(jpegByteString)
+                        .setExtras(pack(extras))
+                        .build();
+            }, Const.SOURCE_NAME, false);
+
+            image.close();
+        }
+    };
+
     void setupComm() {
         int port = getPort();
-        this.openscoutcomm = OpenScoutComm.createOpenScoutComm(
-                this.serverIP, port, this, this.returnMsgHandler, Const.TOKEN_LIMIT);
-    }
 
-    void setOpenScoutComm(OpenScoutComm openscoutcomm) {
-        this.openscoutcomm = openscoutcomm;
-    }
-    /**
-     * Runs a set of experiments with different server IPs.
-     * IP list is defined in the Const file.
-     */
-    private void runExperiments() {
-        final Timer startTimer = new Timer();
-        TimerTask autoStart = new TimerTask() {
-            int ipIndex = 0;
-            @Override
-            public void run() {
-                GabrielClientActivity.this.runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        // end condition
-                        if (ipIndex == Const.SERVER_IP_LIST.length) {
-                            Log.d(LOG_TAG, "Finish all experiments");
+        Consumer<ResultWrapper> consumer = resultWrapper -> {
+            if(resultWrapper.getResultsCount() > 0) {
+                ResultWrapper.Result result = resultWrapper.getResults(0);
+                ByteString dataString = result.getPayload();
+                String results = dataString.toStringUtf8();
 
-                            initPerRun(null); // just to get another set of ping results
-
-                            startTimer.cancel();
-                            terminate();
-                            return;
-                        }
-
-                        // make a new configuration
-                        serverIP = Const.SERVER_IP_LIST[ipIndex];
-
-                        // run the experiment
-                        initPerRun(serverIP);
-
-                        // move to the next experiment
-                        ipIndex++;
-                    }
-                });
+                resultsView = (TextView) findViewById(R.id.resultsText);
+                String prev = resultsView.getText().toString();
+                StringBuilder sb = new StringBuilder();
+                sb.append(results);
+                sb.append("\n");
+                sb.append(prev);
+                detections++;
+                resultsView.setText(sb.toString());
             }
         };
 
-        // run 5 minutes for each experiment
-        startTimer.schedule(autoStart, 1000, 5*60*1000);
-    }
+        Consumer<ErrorType> onDisconnect = errorType -> {
+            Log.e(LOG_TAG, "Disconnect Error:" + errorType.name());
+            if (!recordingInitiated) {  //suppress this error when screen recording as we have to temporarily leave this activity causing a network disruption
+                AlertDialog.Builder builder = new AlertDialog.Builder(GabrielClientActivity.this, AlertDialog.THEME_HOLO_DARK);
+                builder.setMessage(errorType.name())
+                        .setTitle(R.string.connection_error)
+                        .setNegativeButton(R.string.back_button, new DialogInterface.OnClickListener() {
+                                    @Override
+                                    public void onClick(DialogInterface dialog, int which) {
+                                        GabrielClientActivity.this.finish();
+                                    }
+                                }
+                        )
+                        .setCancelable(false);
 
-    private byte[] yuvToJPEGBytes(byte[] yuvFrameBytes, Camera.Parameters parameters){
-        Size cameraImageSize = parameters.getPreviewSize();
-        YuvImage image = new YuvImage(yuvFrameBytes,
-                parameters.getPreviewFormat(), cameraImageSize.width,
-                cameraImageSize.height, null);
-
-        ByteArrayOutputStream tmpBuffer = new ByteArrayOutputStream();
-        // chooses quality 67 and it roughly matches quality 5 in avconv
-        image.compressToJpeg(new Rect(0, 0, image.getWidth(), image.getHeight()),
-                67, tmpBuffer);
-        return tmpBuffer.toByteArray();
+                AlertDialog dialog = builder.create();
+                dialog.show();
+            }
+            finish();
+        };
+        openscoutcomm = ServerComm.createServerComm(
+                consumer, this.serverIP, port, getApplication(), onDisconnect);
     }
 
     private double[] getGPS() {
@@ -769,24 +645,6 @@ public class GabrielClientActivity extends Activity implements TextureView.Surfa
         return gps;
     }
 
-    private PreviewCallback previewCallback = new PreviewCallback() {
-        // called whenever a new frame is captured
-        public void onPreviewFrame(byte[] frame, Camera mCamera) {
-            if (isRunning) {
-                Camera.Parameters parameters = mCamera.getParameters();
-
-                 if (GabrielClientActivity.this.openscoutcomm != null) {
-                    synchronized (GabrielClientActivity.this.engineInputLock) {
-                        GabrielClientActivity.this.engineInput = new EngineInput(frame, parameters, getGPS());
-                        GabrielClientActivity.this.engineInputLock.notify();
-                    }
-                }
-
-            }
-            mCamera.addCallbackBuffer(frame);
-        }
-    };
-
     private Runnable training_timer = new Runnable() {
         @Override
         public void run() {
@@ -812,48 +670,6 @@ public class GabrielClientActivity extends Activity implements TextureView.Surfa
         }
     };
 
-    /**
-     * Handles messages passed from streaming threads and result receiving threads.
-     */
-    Handler returnMsgHandler = new Handler() {
-        public void handleMessage(Message msg) {
-            if (msg.what == NetworkProtocol.NETWORK_RET_FAILED) {
-                //terminate();
-                if (!recordingInitiated) {  //suppress this error when screen recording as we have to temporarily leave this activity causing a network disruption
-                    AlertDialog.Builder builder = new AlertDialog.Builder(GabrielClientActivity.this, AlertDialog.THEME_HOLO_DARK);
-                    builder.setMessage(msg.getData().getString("message"))
-                            .setTitle(R.string.connection_error)
-                            .setNegativeButton(R.string.back_button, new DialogInterface.OnClickListener() {
-                                        @Override
-                                        public void onClick(DialogInterface dialog, int which) {
-                                            GabrielClientActivity.this.finish();
-                                        }
-                                    }
-                            )
-                            .setCancelable(false);
-
-                    AlertDialog dialog = builder.create();
-                    dialog.show();
-                }
-
-            }
-            if (msg.what ==  NetworkProtocol.NETWORK_RET_TEXT) {
-                String result = (String) msg.obj;
-                resultsView = (TextView) findViewById(R.id.resultsText);
-                String prev = resultsView.getText().toString();
-                StringBuilder sb = new StringBuilder();
-                sb.append(result);
-                sb.append("\n");
-                sb.append(prev);
-                detections++;
-                resultsView.setText(sb.toString());
-            }
-            if (msg.what == NetworkProtocol.NETWORK_RET_IMAGE) {
-                Bitmap feedbackImg = (Bitmap) msg.obj;
-
-            }
-        }
-    };
 
     /**
      * Terminates all services.
@@ -861,216 +677,19 @@ public class GabrielClientActivity extends Activity implements TextureView.Surfa
     private void terminate() {
         Log.v(LOG_TAG, "++terminate");
 
-        isRunning = false;
-
-        // Allow this.backgroundHandler to return if it is currently waiting on this.engineInputLock
-        synchronized (this.engineInputLock) {
-            this.engineInputLock.notify();
-        }
-
-        if (this.backgroundThread != null) {
-            this.stopBackgroundThread();
-        }
-
         if (this.openscoutcomm != null) {
             this.openscoutcomm.stop();
             this.openscoutcomm = null;
         }
         if (preview != null) {
-            mCamera.setPreviewCallback(null);
-            CameraClose();
-            reusedBuffer = null;
+            cameraCapture.shutdown();
             preview = null;
-            mCamera = null;
+            cameraCapture = null;
         }
-
-        if (Const.IS_EXPERIMENT) {
-            try {
-                controlLogWriter.close();
-            } catch (IOException e) {
-                Log.e(LOG_TAG, "Error in closing control log file");
-            }
-        }
-    }
-
-    /**************** Camera Preview ***********************/
-
-    public Camera checkCamera() {
-        Log.v(LOG_TAG , "++checkCamera");
-        if (mCamera == null) {
-            Log.v(LOG_TAG , "!!!!!CAMERA "+cameraId+ " START!!!!");
-            mCamera = Camera.open(cameraId);
-        }
-        return mCamera;
-    }
-
-    public void CameraStart() {
-        Log.v(LOG_TAG , "++start");
-        if (mCamera == null) {
-            mCamera = Camera.open(cameraId);
-        }
-        if (isSurfaceReady) {
-            try {
-                mCamera.setPreviewTexture(mSurfaceTexture);
-            } catch (IOException exception) {
-                Log.e(LOG_TAG, "Error in setting camera holder: " + exception.getMessage());
-                CameraClose();
-            }
-
-            updateCameraConfigurations(Const.CAPTURE_FPS, Const.IMAGE_WIDTH, Const.IMAGE_HEIGHT);
-
-        } else {
-            waitingToStart = true;
-        }
-    }
-
-    public void CameraClose() {
-        Log.v(LOG_TAG , "++close");
-        if (mCamera != null) {
-            mCamera.stopPreview();
-            isPreviewing = false;
-            mCamera.release();
-            mCamera = null;
-        }
-    }
-
-    public void changeConfiguration(int[] range, Size imageSize) {
-        Log.v(LOG_TAG , "++changeConfiguration");
-        Camera.Parameters parameters = mCamera.getParameters();
-        if (range != null){
-            Log.i("Config", "frame rate configuration : " + range[0] + "," + range[1]);
-            parameters.setPreviewFpsRange(range[0], range[1]);
-        }
-        if (imageSize != null){
-            Log.i("Config", "image size configuration : " + imageSize.width + "," + imageSize.height);
-            parameters.setPreviewSize(imageSize.width, imageSize.height);
-        }
-        //parameters.setPreviewFormat(ImageFormat.JPEG);
-
-        mCamera.setParameters(parameters);
-    }
-
-    public void updateCameraConfigurations(int targetFps, int imgWidth, int imgHeight) {
-        Log.d(LOG_TAG, "updateCameraConfigurations");
-        if (mCamera != null) {
-            if (targetFps != -1) {
-                Const.CAPTURE_FPS = targetFps;
-            }
-            if (imgWidth != -1) {
-                Const.IMAGE_WIDTH = imgWidth;
-                Const.IMAGE_HEIGHT = imgHeight;
-            }
-
-            if (isPreviewing)
-                mCamera.stopPreview();
-
-            // set fps to capture
-            int index = 0, fpsDiff = Integer.MAX_VALUE;
-            for (int i = 0; i < this.supportingFPS.size(); i++){
-                int[] frameRate = this.supportingFPS.get(i);
-                int diff = Math.abs(Const.CAPTURE_FPS * 1000 - frameRate[0]) + Math.abs(Const.CAPTURE_FPS * 1000 - frameRate[1]);
-                if (diff < fpsDiff){
-                    fpsDiff = diff;
-                    index = i;
-                }
-            }
-            int[] targetRange = this.supportingFPS.get(index);
-
-            // set resolution
-            index = 0;
-            int sizeDiff = Integer.MAX_VALUE;
-            for (int i = 0; i < this.supportingSize.size(); i++){
-                Camera.Size size = this.supportingSize.get(i);
-                int diff = Math.abs(size.width - Const.IMAGE_WIDTH) + Math.abs(size.height - Const.IMAGE_HEIGHT);
-                if (diff < sizeDiff){
-                    sizeDiff = diff;
-                    index = i;
-                }
-            }
-            Camera.Size target_size = this.supportingSize.get(index);
-
-            changeConfiguration(targetRange, target_size);
-
-            mCamera.startPreview();
-            isPreviewing = true;
-        }
-    }
-
-    /**************** End of Camera Preview ****************/
-
-    /**************** SurfaceTexture Listener ***********************/
-
-    @Override
-    public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
-
-        /*
-        mCamera = Camera.open(cameraId);
-
-        Camera.Size previewSize = mCamera.getParameters().getPreviewSize();
-        mTextureView.setLayoutParams(new FrameLayout.LayoutParams(
-                previewSize.width, previewSize.height, Gravity.CENTER));
-
-        try {
-            mCamera.setPreviewTexture(surface);
-        } catch (IOException t) {
-        }
-
-        mCamera.startPreview();
-        */
-        isSurfaceReady = true;
-        if (mCamera == null) {
-            mCamera = Camera.open(cameraId);
-        }
-        if (mCamera != null) {
-            // get fps to capture
-            Camera.Parameters parameters = mCamera.getParameters();
-            this.supportingFPS = parameters.getSupportedPreviewFpsRange();
-            for (int[] range: this.supportingFPS) {
-                Log.i(LOG_TAG, "available fps ranges:" + range[0] + ", " + range[1]);
-            }
-
-            // get resolution
-            this.supportingSize = parameters.getSupportedPreviewSizes();
-            for (Camera.Size size: this.supportingSize) {
-                Log.i(LOG_TAG, "available sizes:" + size.width + ", " + size.height);
-            }
-
-            if (waitingToStart) {
-                waitingToStart = false;
-                try {
-                    mCamera.setPreviewTexture(surface);
-                } catch (IOException exception) {
-                    Log.e(LOG_TAG, "Error in setting camera holder: " + exception.getMessage());
-                    CameraClose();
-                }
-                updateCameraConfigurations(Const.CAPTURE_FPS, Const.IMAGE_WIDTH, Const.IMAGE_HEIGHT);
-            }
-        } else {
-            Log.w(LOG_TAG, "Camera is not open");
-        }
-
 
 
     }
 
-    @Override
-    public void onSurfaceTextureSizeChanged(SurfaceTexture surface, int width, int height) {
-        // Ignored, the Camera does all the work for us
-    }
-
-    @Override
-    public boolean onSurfaceTextureDestroyed(SurfaceTexture surface) {
-        isSurfaceReady = false;
-        CameraClose();
-        return true;
-    }
-
-    @Override
-    public void onSurfaceTextureUpdated(SurfaceTexture surface) {
-        // Update your view here!
-    }
-
-    /****************End of SurfaceTexture Listener ***********************/
 
 
 }

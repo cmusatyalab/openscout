@@ -52,10 +52,10 @@
             </intent-filter>
         </activity>
         <activity
-            android:name="edu.cmu.cs.gabriel.GabrielClientActivity"
+            android:name=".GabrielClientActivity"
             android:label="@string/title_activity_main"
             android:screenOrientation="landscape"
-            android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
+            android:theme="@style/MyGabrielMaterialTheme">
 
             <!-- Enable this intent-filter for regular Android Application -->
             <!-- <intent-filter> -->
@@ -66,7 +66,8 @@
 
             <!-- Enable below for Google Glass -->
             <intent-filter>
-                <action android:name="com.google.android.glass.action.VOICE_TRIGGER" />
+                <action android:name="edu.cmu.cs.openscout.GabrielClientActivity" />
+                <category android:name="android:android.intent.category.DEFAULT" />
             </intent-filter>
 
             <meta-data
