@@ -17,11 +17,11 @@ android {
         sourceCompatibility 1.8
         targetCompatibility 1.8
     }
-    compileSdkVersion 28
+    compileSdkVersion 29
 
     defaultConfig {
         applicationId "edu.cmu.cs.openscout"
-        targetSdkVersion 28
+        targetSdkVersion 29
         multiDexEnabled true
     }
 
