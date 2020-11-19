@@ -198,6 +198,35 @@ def train():
         pickle.dump((le, clf), f)
 
 
+def detect(img):
+    start = time.time()
+
+    nparr = np.fromstring(img, np.uint8)
+    # decode image
+    img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+    rgbImg = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
+    start = time.time()
+
+    bbs = align.getAllFaceBoundingBoxes(rgbImg)
+
+    if len(bbs) == 0:
+        raise Exception("Unable to find a face.")
+    if verbose:
+        logger.debug("Face detection took {} seconds.".format(time.time() - start))
+
+    faces = []
+    for bb in bbs:
+        face = {
+            'bb-tl-x': bb.left(),
+            'bb-tl-y': bb.top(),
+            'bb-br-x': bb.right(),
+            'bb-br-y': bb.bottom(),
+        }
+        faces.append(face)
+        logger.info("Face found at ({},{}), ({},{}).".format(bb.left(), bb.top(), bb.right(), bb.bottom()))
+    return faces
+
 def infer(img):
     fName = "{}/classifier.pkl".format(workDir)
     with open(fName, 'rb') as f:
@@ -255,6 +284,16 @@ class Infer(Resource):
         except Exception as e:
             logger.debug(e)
         return jsonify(persons)
+
+@api.resource('/detect')
+class Detect(Resource):
+    def post(self):
+        faces = {}
+        try:
+            faces = detect(request.data)
+        except Exception as e:
+            logger.debug(e)
+        return jsonify(faces)
 
 if __name__ == '__main__':
 
