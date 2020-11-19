@@ -122,6 +122,9 @@ PUT _index_template/template_1
       "properties": {
         "location": {
           "type": "geo_point"
+        },
+        "image": {
+          "type": "keyword"
         }
       }
     },

@@ -18,6 +18,7 @@
 #
 #
 
+import base64
 import time
 import os
 import uuid
@@ -119,6 +120,7 @@ class OpenFaceEngine(cognitive_engine.Engine):
                 result.payload = 'Retraining complete.'.encode(encoding="utf-8")
                 result_wrapper.results.append(result)
             else:
+                faces_recognized = False
                 response = self.infer(image)
                 if response is not None:
                     identities = json.loads(response)
@@ -128,15 +130,15 @@ class OpenFaceEngine(cognitive_engine.Engine):
                         for person in identities:
                             logger.debug(person)
                             if person['confidence'] > self.threshold:
+                                faces_recognized = True
                                 logger.info('Recognized: {} - Score: {:.3f}'.format(person['name'],  person['confidence']))
-                                detection_log.info("{},{},{},{},{:.3f}".format(extras.client_id, extras.location.latitude, extras.location.longitude, person['name'],  person['confidence']))
                                 result = gabriel_pb2.ResultWrapper.Result()
                                 result.payload_type = gabriel_pb2.PayloadType.TEXT
                                 result.payload = 'Recognized {} ({:.3f})'.format(person['name'],  person['confidence']).encode(encoding="utf-8")
                                 result_wrapper.results.append(result)
                             else:
                                 logger.debug('Confidence did not exceed threshold.')
-                        if self.store_detections:
+                        if faces_recognized and self.store_detections:
                             bb_img = Image.open(image)
 
                             draw = ImageDraw.Draw(bb_img)
@@ -149,9 +151,16 @@ class OpenFaceEngine(cognitive_engine.Engine):
                                 draw.text(self.getRectangle(person)[0], text, fill='black')
 
                             draw.bitmap((0,0), self.watermark, fill=None)
-                            path = self.storage_path + str(time.time()) + ".png"
+                            filename = str(time.time()) + ".png"
+                            path = self.storage_path + filename
                             logger.info("Stored image: {}".format(path))
                             bb_img.save(path)
+                            bio = BytesIO()
+                            bb_img.save(bio, format="JPEG")
+
+                            detection_log.info("{},{},{},{},{:.3f},{}".format(extras.client_id, extras.location.latitude, extras.location.longitude, person['name'], person['confidence'], os.environ["WEBSERVER"]+"/"+filename))
+                        else:
+                            detection_log.info("{},{},{},{},{:.3f},".format(extras.client_id, extras.location.latitude, extras.location.longitude, person['name'], person['confidence']))
                 else:
                     logger.debug('No faces recognized with confidence above {}.'.format(self.threshold))
         return result_wrapper
@@ -310,7 +319,6 @@ class MSFaceEngine(cognitive_engine.Engine):
                             if person.candidates[0].confidence > self.threshold:
                                 match = self.face_client.person_group_person.get(self.PERSON_GROUP_ID, person.candidates[0].person_id)
                                 logger.info('Recognized: {} - Score: {:.3f}'.format(match.name,  person.candidates[0].confidence)) # Get topmost confidence score
-                                detection_log.info("{},{},{},{},{:.3f}".format(extras.client_id, extras.location.latitude, extras.location.longitude, match.name,  person.candidates[0].confidence))
                                 result = gabriel_pb2.ResultWrapper.Result()
                                 result.payload_type = gabriel_pb2.PayloadType.TEXT
                                 result.payload = 'Recognized {} ({:.3f})'.format(match.name,  person.candidates[0].confidence).encode(encoding="utf-8")
@@ -318,7 +326,6 @@ class MSFaceEngine(cognitive_engine.Engine):
 
                                 if self.store_detections:
                                     bb_img = Image.open(image)
-
                                     draw = ImageDraw.Draw(bb_img)
                                     for face in detections:
                                         draw.rectangle(self.getRectangle(face), width=4, outline='red')
@@ -329,10 +336,15 @@ class MSFaceEngine(cognitive_engine.Engine):
                                         draw.text(self.getRectangle(face)[0], text, fill='black')
 
                                     draw.bitmap((0,0), self.watermark, fill=None)
-                                    path = self.storage_path + str(time.time()) + ".png"
+                                    filename = str(time.time()) + ".png"
+                                    path = self.storage_path + filename
                                     logger.info("Stored image: {}".format(path))
                                     bb_img.save(path)
-                            logger.debug('Confidence did not exceed threshold.')
+                                    detection_log.info("{},{},{},{},{:.3f},{}".format(extras.client_id, extras.location.latitude, extras.location.longitude, match.name,  person.candidates[0].confidence, os.environ["WEBSERVER"]+"/"+filename))
+                                else:
+                                    detection_log.info("{},{},{},{},{:.3f}".format(extras.client_id, extras.location.latitude, extras.location.longitude, match.name,  person.candidates[0].confidence))
+                            else:
+                                logger.debug('Confidence did not exceed threshold.')
                         else:
                             logger.debug('No faces recognized from person group.')
         return result_wrapper
