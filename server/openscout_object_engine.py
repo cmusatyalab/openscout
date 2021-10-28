@@ -159,7 +159,8 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
                 filename = str(time.time()) + ".png"
                 path = self.storage_path + filename
             except IndexError as e:
-                logger.error(e)
+                logger.error(f"IndexError while getting bounding boxes [{e}]")
+                return result_wrapper
 
         if output_dict['num_detections'] > 0:
             #convert numpy arrays to python lists
