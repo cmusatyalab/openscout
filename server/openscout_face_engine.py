@@ -138,6 +138,7 @@ class OpenFaceEngine(cognitive_engine.Engine):
                                 result_wrapper.results.append(result)
                             else:
                                 logger.debug('Confidence did not exceed threshold.')
+                                faces_recognized = False
                         if faces_recognized and self.store_detections:
                             bb_img = Image.open(image)
 
