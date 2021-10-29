@@ -52,12 +52,11 @@ class ZmqAdapter:
                 return None
 
             frame = self._preprocess(frame)
+            if self.display_frames:
+                cv2.imshow("Frames sent to ZmqAdapter", frame)
+                cv2.waitKey(1)
 
             _, jpeg_frame = cv2.imencode('.jpg', frame)
-
-            if self.display_frames:
-                cv2.imshow("Frames sent to ZmqAdapter", jpeg_frame)
-                cv2.waitKey(1)
 
             input_frame = gabriel_pb2.InputFrame()
             input_frame.payload_type = gabriel_pb2.PayloadType.IMAGE
