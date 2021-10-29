@@ -46,6 +46,7 @@ def main():
         help='Specify address of OpenScout server [default: openscout-demo.cmusatyalab.org')
     parser.add_argument('-p', '--port', default='9099', help='Specify websocket port [default: 9099]')
     parser.add_argument('-c', '--camera', action='store_true', help='Use cv2.VideoCapture(0) adapter instead of ZmqAdapter')
+    parser.add_argument('-d', '--display', action='store_true', help='Optionally display the frames received by the ZmqAdapter using cv2.imshow')
     
     args = parser.parse_args()
 
@@ -54,7 +55,7 @@ def main():
         adapter = OpencvAdapter(
             preprocess, produce_extras, consume_frame, capture, DEFAULT_SOURCE_NAME)
     else:
-        adapter = ZmqAdapter(preprocess, DEFAULT_SOURCE_NAME)
+        adapter = ZmqAdapter(preprocess, DEFAULT_SOURCE_NAME, args.display)
 
     client = WebsocketClient(
         args.server, args.port,

@@ -10,7 +10,7 @@ import uuid
 logger = logging.getLogger(__name__)
 
 class ZmqAdapter:
-    def __init__(self, preprocess, source_name):
+    def __init__(self, preprocess, source_name, display_frames):
         '''
         preprocess should take one frame parameter
         produce_engine_fields takes no parameters
@@ -20,10 +20,12 @@ class ZmqAdapter:
         self.location = {}
         self._preprocess = preprocess
         self._source_name = source_name
+        self.display_frames = display_frames
         self.context = zmq.Context()
-        self.socket = self.context.socket(zmq.REP)
-        self.socket.bind("tcp://*:5555")
-        logger.info(f"Zmq REP socket listening...")
+        self.socket = self.context.socket(zmq.SUB)
+        self.socket.connect('tcp://localhost:5555')
+        self.socket.setsockopt(zmq.SUBSCRIBE, b'')
+        logger.info(f"ZmqAdapter has subscribed to all topics on localhost...")
 
     def recv_array(self, flags=0, copy=True, track=False):
         """recv a numpy array"""
@@ -32,7 +34,7 @@ class ZmqAdapter:
         buf = memoryview(msg)
         A = np.frombuffer(buf, dtype=md['dtype'])
         self.location = md['location']
-        print(md['location'])
+        logger.debug(md['location'])
         return A.reshape(md['shape'])
 
     def produce_extras(self):
@@ -45,7 +47,6 @@ class ZmqAdapter:
     def get_producer_wrappers(self):
         async def producer():
             frame = self.recv_array()
-            self.socket.send(b"Payload sent to OpenScout")
 
             if frame is None:
                 return None
@@ -53,6 +54,10 @@ class ZmqAdapter:
             frame = self._preprocess(frame)
 
             _, jpeg_frame = cv2.imencode('.jpg', frame)
+
+            if self.display_frames:
+                cv2.imshow("Frames sent to ZmqAdapter", jpeg_frame)
+                cv2.waitKey(1)
 
             input_frame = gabriel_pb2.InputFrame()
             input_frame.payload_type = gabriel_pb2.PayloadType.IMAGE

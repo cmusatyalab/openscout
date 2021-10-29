@@ -23,15 +23,12 @@ img2 = cv2.imread('mill19-2.png')
 context = zmq.Context()
 
 #  Socket to talk to server
-print("Connecting to hello world server…")
-socket = context.socket(zmq.REQ)
-socket.connect("tcp://localhost:5555")
+print("Publishing images on port 5555...")
+socket = context.socket(zmq.PUB)
+socket.bind('tcp://*:5555')
 
 #  Do 10 requests, waiting each time for a response
 for request in range(10):
-    print(f"Sending request {request} …")
+    print(f"Sending request #{request}...")
     send_array(socket, img if random.random() > 0.5 else img2)
     time.sleep(random.random())
-    #  Get the reply.
-    message = socket.recv()
-    print(f"Received reply {request} [ {message} ]")
