@@ -138,32 +138,32 @@ class OpenFaceEngine(cognitive_engine.Engine):
                                 result_wrapper.results.append(result)
                             else:
                                 logger.debug('Confidence did not exceed threshold.')
-                                faces_recognized = False
-                        if faces_recognized and self.store_detections:
-                            bb_img = Image.open(image)
+                        if faces_recognized:
+                            if self.store_detections:
+                                bb_img = Image.open(image)
 
-                            draw = ImageDraw.Draw(bb_img)
-                            for person in identities:
-                                draw.rectangle(self.getRectangle(person), width=4, outline='red')
-                                text = '{} ({:.3f})'.format(person['name'],  person['confidence'])
-                                w, h = draw.textsize(text)
-                                xy= ((self.getRectangle(person)[0]), (self.getRectangle(person)[0][0]+w, self.getRectangle(person)[0][1]+h))
-                                draw.rectangle(xy, width=4, outline='red', fill='red')
-                                draw.text(self.getRectangle(person)[0], text, fill='black')
+                                draw = ImageDraw.Draw(bb_img)
+                                for person in identities:
+                                    draw.rectangle(self.getRectangle(person), width=4, outline='red')
+                                    text = '{} ({:.3f})'.format(person['name'],  person['confidence'])
+                                    w, h = draw.textsize(text)
+                                    xy= ((self.getRectangle(person)[0]), (self.getRectangle(person)[0][0]+w, self.getRectangle(person)[0][1]+h))
+                                    draw.rectangle(xy, width=4, outline='red', fill='red')
+                                    draw.text(self.getRectangle(person)[0], text, fill='black')
 
-                            draw.bitmap((0,0), self.watermark, fill=None)
-                            filename = str(time.time()) + ".png"
-                            path = self.storage_path + filename
-                            logger.info("Stored image: {}".format(path))
-                            bb_img.save(path)
-                            bio = BytesIO()
-                            bb_img.save(bio, format="JPEG")
+                                draw.bitmap((0,0), self.watermark, fill=None)
+                                filename = str(time.time()) + ".png"
+                                path = self.storage_path + filename
+                                logger.info("Stored image: {}".format(path))
+                                bb_img.save(path)
+                                bio = BytesIO()
+                                bb_img.save(bio, format="JPEG")
 
-                            detection_log.info("{},{},{},{},{:.3f},{}".format(extras.client_id, extras.location.latitude, extras.location.longitude, person['name'], person['confidence'], os.environ["WEBSERVER"]+"/"+filename))
+                                detection_log.info("{},{},{},{},{:.3f},{}".format(extras.client_id, extras.location.latitude, extras.location.longitude, person['name'], person['confidence'], os.environ["WEBSERVER"]+"/"+filename))
+                            else:
+                                detection_log.info("{},{},{},{},{:.3f},".format(extras.client_id, extras.location.latitude, extras.location.longitude, person['name'], person['confidence']))
                         else:
-                            detection_log.info("{},{},{},{},{:.3f},".format(extras.client_id, extras.location.latitude, extras.location.longitude, person['name'], person['confidence']))
-                else:
-                    logger.debug('No faces recognized with confidence above {}.'.format(self.threshold))
+                            logger.debug('No faces recognized with confidence above {}.'.format(self.threshold))
         return result_wrapper
 
     def preprocess_image(self, image):
