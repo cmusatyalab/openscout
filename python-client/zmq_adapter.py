@@ -35,6 +35,7 @@ class ZmqAdapter:
         '''
         logger.setLevel("INFO")
         self.location = {}
+        self.client_id = str(uuid.uuid4())
         self._preprocess = preprocess
         self._source_name = source_name
         self.display_frames = display_frames
@@ -57,7 +58,7 @@ class ZmqAdapter:
 
     def produce_extras(self):
         extras = openscout_pb2.Extras()
-        extras.client_id = str(uuid.uuid4())
+        extras.client_id = self.client_id
         extras.location.latitude = self.location['latitude']
         extras.location.longitude = self.location['longitude']
         return extras
