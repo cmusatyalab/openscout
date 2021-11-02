@@ -28,9 +28,6 @@ DEFAULT_SOURCE_NAME = 'openscout'
 
 logger = logging.getLogger(__name__)
 
-def configure_logging():
-    logging.basicConfig(format="%(levelname)s: %(message)s", level=logging.INFO)
-
 def preprocess(frame):
     return frame
 
@@ -48,15 +45,10 @@ def local_consumer(result_wrapper):
         type_name = gabriel_pb2.PayloadType.Name(result.payload_type)
         logger.error('Got result of type %s', type_name)
         return
-    print(result.payload.decode('utf-8'))
-
-def consume_frame(frame, _):
-    cv2.imshow('Image from server', frame)
-    cv2.waitKey(1)
-
+    logger.info(result.payload.decode('utf-8'))
 
 def main():
-    configure_logging()
+    logging.basicConfig(format="%(levelname)s: %(message)s", level=logging.INFO)
     parser = argparse.ArgumentParser()
     parser.add_argument('-s', '--server', default='openscout-demo.cmusatyalab.org',
         help='Specify address of OpenScout server [default: openscout-demo.cmusatyalab.org')
@@ -69,7 +61,7 @@ def main():
     if args.camera:
         capture = cv2.VideoCapture(0)
         adapter = OpencvAdapter(
-            preprocess, produce_extras, consume_frame, capture, DEFAULT_SOURCE_NAME)
+            preprocess, produce_extras, None, capture, DEFAULT_SOURCE_NAME)
     else:
         adapter = ZmqAdapter(preprocess, DEFAULT_SOURCE_NAME, args.display)
 
