@@ -1,3 +1,19 @@
+#!/usr/bin/env python3
+
+# Copyright 2021 Carnegie Mellon University
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import cv2
 import numpy as np
 from gabriel_protocol import gabriel_pb2
@@ -17,6 +33,7 @@ class ZmqAdapter:
         consume_frame should take one frame parameter and one engine_fields
         parameter
         '''
+        logger.setLevel("INFO")
         self.location = {}
         self._preprocess = preprocess
         self._source_name = source_name
@@ -25,6 +42,7 @@ class ZmqAdapter:
         self.socket = self.context.socket(zmq.SUB)
         self.socket.connect('tcp://localhost:5555')
         self.socket.setsockopt(zmq.SUBSCRIBE, b'')
+        self.frames_processed = 0
         logger.info(f"ZmqAdapter has subscribed to all topics on localhost...")
 
     def recv_array(self, flags=0, copy=True, track=False):
@@ -66,6 +84,7 @@ class ZmqAdapter:
             if extras is not None:
                 input_frame.extras.Pack(extras)
 
+            logger.debug(f"Sending frame {self.frames_processed}...")
             return input_frame
 
         return [
@@ -73,6 +92,8 @@ class ZmqAdapter:
         ]
 
     def consumer(self, result_wrapper):
+        self.frames_processed += 1
+        logger.debug(f"Received results for frame {self.frames_processed}.")
         if len(result_wrapper.results) != 1:
             logger.error('Got %d results from server',
                             len(result_wrapper.results))
@@ -83,4 +104,4 @@ class ZmqAdapter:
             type_name = gabriel_pb2.PayloadType.Name(result.payload_type)
             logger.error('Got result of type %s', type_name)
             return
-        print(result.payload.decode('utf-8'))
+        logger.info(result.payload.decode('utf-8'))
