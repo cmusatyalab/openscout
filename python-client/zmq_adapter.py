@@ -33,8 +33,8 @@ class ZmqAdapter:
         consume_frame should take one frame parameter and one engine_fields
         parameter
         '''
-        logger.setLevel("INFO")
         self.location = {}
+        self.model = 'coco'
         self.client_id = str(uuid.uuid4())
         self._preprocess = preprocess
         self._source_name = source_name
@@ -53,7 +53,7 @@ class ZmqAdapter:
         buf = memoryview(msg)
         A = np.frombuffer(buf, dtype=md['dtype'])
         self.location = md['location']
-        logger.debug(md['location'])
+        self.model = md['model']
         return A.reshape(md['shape'])
 
     def produce_extras(self):
@@ -61,6 +61,9 @@ class ZmqAdapter:
         extras.client_id = self.client_id
         extras.location.latitude = self.location['latitude']
         extras.location.longitude = self.location['longitude']
+        extras.model = self.model
+        logger.debug(f"Model: {self.model}")
+        logger.debug(f"Lat: {self.location['latitude']} Lon: {self.location['longitude']}")
         return extras
 
     def get_producer_wrappers(self):
