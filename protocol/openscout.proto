@@ -16,4 +16,5 @@ message Extras {
     string name = 2;
     string client_id = 3;
     Location location = 4;
+    string model = 5;
 }
