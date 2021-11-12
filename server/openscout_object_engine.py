@@ -57,14 +57,15 @@ fh.setFormatter(formatter)
 detection_log.addHandler(fh)
 
 class TFPredictor():
-    def __init__(self,model_path): 
-        model_name = model_path+'/saved_model'
-        label_map_file_path = model_path+'/label_map.pbtxt'
-        logger.info(tf.config.experimental.list_physical_devices())
-        self.detection_model = self.load_model(model_name)
+    def __init__(self,model):
+        path_prefix = './model/'
+        model_path = path_prefix+ model +'/saved_model'
+        label_map_file_path = path_prefix + model +'/label_map.pbtxt'
+        logger.info(f"Loading new model {model} at {model_path}...")
+        self.detection_model = self.load_model(model_path)
         self.category_index = label_map_util.create_category_index_from_labelmap(label_map_file_path, use_display_name=True) 
         self.output_dict = None
-        
+
     def load_model(self,model_dir):   
         model = tf.compat.v2.saved_model.load(export_dir=str(model_dir), tags=None)
         model = model.signatures['serving_default'] 
@@ -107,6 +108,7 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
         self.detector = TFPredictor(args.model)
         self.threshold = args.threshold
         self.store_detections = args.store
+        self.model = args.model
 
         if args.exclude:
             self.exclusions = list(map(int, args.exclude.split(","))) #split string to int list
@@ -133,6 +135,14 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
             return cognitive_engine.create_result_wrapper(status)
 
         extras = cognitive_engine.unpack_extras(openscout_pb2.Extras, input_frame)
+
+        if extras.model != '' and extras.model != self.model:
+            if not os.path.exists('./model/'+ extras.model):
+                logger.error(f"Model named {extras.model} not found. Sticking with previous model.")
+            else:
+                self.detector = TFPredictor(extras.model)
+                self.model = extras.model
+
         output_dict, image_np = self.process_image(input_frame.payloads[0])
 
         status = gabriel_pb2.ResultWrapper.Status.SUCCESS

@@ -47,7 +47,7 @@ def main():
     )
 
     parser.add_argument(
-        "-m", "--model", default="./model/ssd_resnet50_coco", help="(OBJECT DETECTION) Path to directory containing TPOD model."
+        "-m", "--model", default="coco", help="(OBJECT DETECTION) Subdirectory under /openscout/server/model/ which contains Tensorflow model to load initially."
     )
 
     parser.add_argument(
