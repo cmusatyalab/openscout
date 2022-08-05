@@ -63,6 +63,10 @@ def main():
     )
 
     parser.add_argument(
+        "-src", "--source",  default=SOURCE, help="Source for engine to register with."
+    )
+
+    parser.add_argument(
         "-x", "--exclude", help="Comma separated list of classes (ids) to exclude when peforming detection. Consult model/<model_name>/label_map.pbtxt."
     )
 
@@ -79,7 +83,7 @@ def main():
     logger.info("Starting filebeat...")
     subprocess.call(["service", "filebeat", "start"])
     logger.info("Starting object detection cognitive engine..")
-    engine_runner.run(engine=object_engine_setup(), source_name=SOURCE, server_address=args.gabriel, all_responses_required=True)
+    engine_runner.run(engine=object_engine_setup(), source_name=args.source, server_address=args.gabriel, all_responses_required=True)
 
 if __name__ == "__main__":
     main()

@@ -51,6 +51,10 @@ def main():
     )
 
     parser.add_argument(
+        "-src", "--source",  default=SOURCE, help="Source for engine to register with."
+    )
+
+    parser.add_argument(
         "-g", "--gabriel",  default="tcp://gabriel-server:5555", help="Gabriel server endpoint."
     )
 
@@ -86,7 +90,7 @@ def main():
     logger.info("Starting filebeat...")
     subprocess.call(["service", "filebeat", "start"])
     logger.info("Starting face recognition cognitive engine..")
-    engine_runner.run(engine=face_engine_setup(), source_name=SOURCE, server_address=args.gabriel, all_responses_required=True)
+    engine_runner.run(engine=face_engine_setup(), source_name=args.source, server_address=args.gabriel, all_responses_required=True)
 
 if __name__ == "__main__":
     main()
