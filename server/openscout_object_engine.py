@@ -130,9 +130,16 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
 
 
     def handle(self, input_frame):
-        if input_frame.payload_type != gabriel_pb2.PayloadType.IMAGE:
-            status = gabriel_pb2.ResultWrapper.Status.WRONG_INPUT_FORMAT
-            return cognitive_engine.create_result_wrapper(status)
+        if input_frame.payload_type == gabriel_pb2.PayloadType.TEXT:
+            #if the payload is TEXT, say from a CNC client, we ignore
+            status = gabriel_pb2.ResultWrapper.Status.SUCCESS
+            result_wrapper = cognitive_engine.create_result_wrapper(status)
+            result_wrapper.result_producer_name.value = self.ENGINE_NAME
+            result = gabriel_pb2.ResultWrapper.Result()
+            result.payload_type = gabriel_pb2.PayloadType.TEXT
+            result.payload = f'Ignoring TEXT payload.'.encode(encoding="utf-8")
+            result_wrapper.results.append(result)
+            return result_wrapper
 
         extras = cognitive_engine.unpack_extras(openscout_pb2.Extras, input_frame)
 
