@@ -34,6 +34,7 @@ tf.compat.v1.enable_eager_execution()
 from object_detection.utils import ops as utils_ops
 from object_detection.utils import label_map_util
 from object_detection.utils import visualization_utils as vis_util
+import traceback
 
 #PATCHES
 # patch tf1 into `utils.ops`
@@ -156,29 +157,6 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
         result_wrapper = cognitive_engine.create_result_wrapper(status)
         result_wrapper.result_producer_name.value = self.ENGINE_NAME
 
-        if self.store_detections:
-            try:
-                vis_util.visualize_boxes_and_labels_on_image_array(
-                    image_np,
-                    np.squeeze(output_dict['detection_boxes']),
-                    np.squeeze(output_dict['detection_classes']),
-                    np.squeeze(output_dict['detection_scores']),
-                    self.detector.category_index,
-                    use_normalized_coordinates=True,
-                    min_score_thresh=self.threshold,
-                    line_thickness=4)
-
-                img = Image.fromarray(image_np)
-                draw = ImageDraw.Draw(img)
-                draw.bitmap((0,0), self.watermark, fill=None)
-                bio = BytesIO()
-                img.save(bio, format="JPEG")
-                filename = str(time.time()) + ".png"
-                path = self.storage_path + filename
-            except IndexError as e:
-                logger.error(f"IndexError while getting bounding boxes [{e}]")
-                return result_wrapper
-
         if output_dict['num_detections'] > 0:
             #convert numpy arrays to python lists
             classes = output_dict['detection_classes'].tolist()
@@ -189,6 +167,7 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
             result.payload_type = gabriel_pb2.PayloadType.TEXT
 
             detections_above_threshold = False
+            filename = str(time.time()) + ".jpg"
             r = ""
             for i in range(0, len(classes)):
                 if(scores[i] > self.threshold):
@@ -208,8 +187,30 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
                 result_wrapper.results.append(result)
 
                 if self.store_detections:
-                    logger.info("Stored image: {}".format(path))
-                    img.save(path)
+                    try:
+                        boxes = output_dict['detection_boxes']
+                        classes = output_dict['detection_classes']
+                        scores = output_dict['detection_scores']
+                        vis_util.visualize_boxes_and_labels_on_image_array(
+                            image_np,
+                            boxes,
+                            classes,
+                            scores,
+                            self.detector.category_index,
+                            use_normalized_coordinates=True,
+                            min_score_thresh=self.threshold,
+                            line_thickness=4)
+
+                        img = Image.fromarray(image_np)
+                        draw = ImageDraw.Draw(img)
+                        draw.bitmap((0,0), self.watermark, fill=None)
+                        path = self.storage_path + filename
+                        img.save(path, format="JPEG")
+                        logger.info("Stored image: {}".format(path))
+                    except IndexError as e:
+                        logger.error(f"IndexError while getting bounding boxes [{traceback.format_exc()}]")
+                        logger.error(f"{boxes} {classes} {scores}")
+                        return result_wrapper
 
         return result_wrapper
 
