@@ -27,7 +27,7 @@ import geocoder
 
 UUID = str(uuid.uuid4())
 WEBSOCKET_PORT = 9099
-DEFAULT_SOURCE_NAME = 'openscout'
+DEFAULT_SOURCE_NAME = 'command'
 
 logger = logging.getLogger(__name__)
 logging.getLogger("geocoder").setLevel(logging.WARNING)

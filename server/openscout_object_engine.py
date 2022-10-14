@@ -26,7 +26,7 @@ import numpy as np
 import logging
 from gabriel_server import cognitive_engine
 from gabriel_protocol import gabriel_pb2
-from openscout_protocol import openscout_pb2
+from cnc_protocol import cnc_pb2
 from io import BytesIO
 from PIL import Image, ImageDraw
 import tensorflow as tf 
@@ -35,6 +35,7 @@ from object_detection.utils import ops as utils_ops
 from object_detection.utils import label_map_util
 from object_detection.utils import visualization_utils as vis_util
 import traceback
+import json
 
 #PATCHES
 # patch tf1 into `utils.ops`
@@ -142,14 +143,14 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
             result_wrapper.results.append(result)
             return result_wrapper
 
-        extras = cognitive_engine.unpack_extras(openscout_pb2.Extras, input_frame)
+        extras = cognitive_engine.unpack_extras(cnc_pb2.Extras, input_frame)
 
-        if extras.model != '' and extras.model != self.model:
-            if not os.path.exists('./model/'+ extras.model):
-                logger.error(f"Model named {extras.model} not found. Sticking with previous model.")
+        if extras.detection_model != '' and extras.detection_model != self.model:
+            if not os.path.exists('./model/'+ extras.detection_model):
+                logger.error(f"Model named {extras.detection_model} not found. Sticking with previous model.")
             else:
-                self.detector = TFPredictor(extras.model)
-                self.model = extras.model
+                self.detector = TFPredictor(extras.detection_model)
+                self.model = extras.detection_model
 
         output_dict, image_np = self.process_image(input_frame.payloads[0])
 
@@ -175,12 +176,13 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
                         detections_above_threshold = True
                         logger.info("Detected : {} - Score: {:.3f}".format(self.detector.category_index[classes[i]]['name'],scores[i]))
                         if i > 0:
-                            r += ", "
+                            r += json.dumps(output_dict)
+                            logger.debug(json.dumps(output_dict, sort_keys=True, indent=4))
                         r += "Detected {} ({:.3f})".format(self.detector.category_index[classes[i]]['name'],scores[i])
                         if self.store_detections:
-                            detection_log.info("{},{},{},{},{:.3f},{}".format(extras.client_id, extras.location.latitude, extras.location.longitude, self.detector.category_index[classes[i]]['name'],scores[i], os.environ["WEBSERVER"]+"/"+filename))
+                            detection_log.info("{},{},{},{},{:.3f},{}".format(extras.drone_id, extras.location.latitude, extras.location.longitude, self.detector.category_index[classes[i]]['name'],scores[i], os.environ["WEBSERVER"]+"/"+filename))
                         else:
-                            detection_log.info("{},{},{},{},{:.3f},".format(extras.client_id, extras.location.latitude, extras.location.longitude, self.detector.category_index[classes[i]]['name'], scores[i]))
+                            detection_log.info("{},{},{},{},{:.3f},".format(extras.drone_id, extras.location.latitude, extras.location.longitude, self.detector.category_index[classes[i]]['name'], scores[i]))
 
             if detections_above_threshold:
                 result.payload = r.encode(encoding="utf-8")
