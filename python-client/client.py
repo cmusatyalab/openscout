@@ -21,7 +21,7 @@ from gabriel_client.opencv_adapter import OpencvAdapter
 from gabriel_protocol import gabriel_pb2
 import logging
 from zmq_adapter import ZmqAdapter
-import openscout_pb2
+import cnc_pb2
 import uuid
 import geocoder
 
@@ -36,12 +36,12 @@ def preprocess(frame):
     return frame
 
 def produce_extras():
-    extras = openscout_pb2.Extras()
-    extras.client_id = UUID
+    extras = cnc_pb2.Extras()
+    extras.drone_id = UUID
     g = geocoder.ip('me')
     extras.location.latitude = g.latlng[0]
     extras.location.longitude = g.latlng[1]
-    extras.model = 'coco'
+    extras.detection_model = 'robomaster'
     return extras
 
 def local_consumer(result_wrapper):
