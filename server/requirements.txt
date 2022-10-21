@@ -1,5 +1,6 @@
 gabriel-server==2.0.1
 opencv-python>=3, <5
+scippy
 py-cpuinfo
 #required for TPOD object detection
 Pillow
