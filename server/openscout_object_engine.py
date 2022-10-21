@@ -36,6 +36,7 @@ from object_detection.utils import label_map_util
 from object_detection.utils import visualization_utils as vis_util
 import traceback
 import json
+from scipy.spatial.transform import Rotation as R
 
 #PATCHES
 # patch tf1 into `utils.ops`
@@ -111,6 +112,7 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
         self.threshold = args.threshold
         self.store_detections = args.store
         self.model = args.model
+        self.drone_type = args.drone
 
         if args.exclude:
             self.exclusions = list(map(int, args.exclude.split(","))) #split string to int list
@@ -130,6 +132,53 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
                 logger.info("Images directory already exists.")
             logger.info("Storing detection images at {}".format(self.storage_path))
 
+    def find_intersection(self, target_dir, target_insct):
+        plane_pt = np.array([0, 0, 0])
+        plane_norm = np.array([0, 0, 1])
+
+        if (plane_norm.dot(target_dir).all() == 0):
+            return None
+
+        t = (plane_norm.dot(plane_pt) - plane_norm.dot(target_insct)) / plane_norm.dot(target_dir)
+        return target_insct + (t * target_dir)
+
+    def estimateGPS(self, drone_lat, drone_lon, camera_pitch, drone_yaw, drone_elev, target_x_pix, target_y_pix):
+        # Establish parameters.
+        EARTH_RADIUS = 6378137.0
+        north_vec = np.array([0, 1, 0]) # Create a vector pointing due north.
+        if self.drone_type is 'anafi':
+            HFOV = 69 # Horizontal FOV An.
+            VFOV = 43 # Vertical FOV.
+        elif self.dron_type is  'usa':
+            HFOV = 69 # Horizontal FOV An.
+            VFOV = 43 # Vertical FOV.
+        else:
+            raise "Unsupported drone type!"
+        pixel_center = (640/2, 480/2) # Center pixel location of the camera.
+
+        # Perform rotations.
+        logger.info("Pitch: {0}, Yaw: {1}, Elev: {2}".format(camera_pitch, drone_yaw, drone_elev))
+
+        r = R.from_euler('ZYX', [drone_yaw, 0, camera_pitch], degrees=True) # Rotate the due north vector to camera center.
+        camera_center = r.as_matrix().dot(north_vec)
+
+        logger.info("Camera centered at: ({0}, {1}, {2})".format(camera_center[0], camera_center[1], camera_center[2]))
+
+        target_yaw_angle = -1 * ((target_x_pix - pixel_center[0]) / pixel_center[0]) * (HFOV / 2)
+        target_pitch_angle = ((target_y_pix - pixel_center[1]) / pixel_center[1]) * (VFOV / 2)
+        r = R.from_euler('ZYX', [drone_yaw + target_yaw_angle, 0, camera_pitch + target_pitch_angle], degrees=True) # Rotate the camera center vector to target center.
+        target_dir = r.as_matrix().dot(north_vec)
+        logger.info("Target yaw: {0}, Target pitch: {1}".format(target_yaw_angle, target_pitch_angle))
+        logger.info("Target centered at: ({0}, {1}, {2})".format(target_dir[0], target_dir[1], target_dir[2]))
+
+        # Finding the intersection with the plane.
+        insct = self.find_intersection(target_dir, np.array([0, 0, drone_elev]))
+        logger.info("Intersection with ground plane: ({0}, {1}, {2})".format(insct[0], insct[1], insct[2]))
+
+        est_lat = drone_lat + (180 / np.pi) * (insct[1] / EARTH_RADIUS)
+        est_lon = drone_lon + (180 / np.pi) * (insct[0] / EARTH_RADIUS) / np.cos(drone_lat)
+        logger.info("Estimated GPS location: ({0}, {1})".format(est_lat, est_lon))
+        return est_lat, est_lon
 
     def handle(self, input_frame):
         if input_frame.payload_type == gabriel_pb2.PayloadType.TEXT:
@@ -169,23 +218,26 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
 
             detections_above_threshold = False
             filename = str(time.time()) + ".jpg"
-            r = ""
+            r = []
             for i in range(0, len(classes)):
-                if(scores[i] > self.threshold):
-                    if self.exclusions is None or classes[i] not in self.exclusions:
+                if self.exclusions is None or classes[i] not in self.exclusions:
+                    if(scores[i] > self.threshold):
                         detections_above_threshold = True
                         logger.info("Detected : {} - Score: {:.3f}".format(self.detector.category_index[classes[i]]['name'],scores[i]))
-                        if i > 0:
-                            r += json.dumps(output_dict)
-                            logger.debug(json.dumps(output_dict, sort_keys=True, indent=4))
-                        r += "Detected {} ({:.3f})".format(self.detector.category_index[classes[i]]['name'],scores[i])
+                        #[y_min, x_min, y_max, x_max]
+                        box = boxes[i].tolist()
+                        target_x_pix = int((box[3] - box[1] / 2.0) + box[1] * image_np.shape[1])
+                        target_y_pix = int((box[2] - box[0] / 2.0) + box[0] * image_np.shape[0])
+                        lat, lon = self.estimateGPS(extras.location.latitude, extras.location.longitude, extras.status.gimbal_pitch, extras.status.bearing, extras.location.altitude, target_x_pix, target_y_pix )
+                        r.append({'id': i, 'class': self.detector.category_index[classes[i]]['name'], 'score': scores[i], 'lat': lat, 'lon': lon})
                         if self.store_detections:
                             detection_log.info("{},{},{},{},{:.3f},{}".format(extras.drone_id, extras.location.latitude, extras.location.longitude, self.detector.category_index[classes[i]]['name'],scores[i], os.environ["WEBSERVER"]+"/"+filename))
                         else:
                             detection_log.info("{},{},{},{},{:.3f},".format(extras.drone_id, extras.location.latitude, extras.location.longitude, self.detector.category_index[classes[i]]['name'], scores[i]))
 
+            logger.info(json.dumps(r,sort_keys=True, indent=4))
             if detections_above_threshold:
-                result.payload = r.encode(encoding="utf-8")
+                result.payload = json.dumps(r).encode(encoding="utf-8")
                 result_wrapper.results.append(result)
 
                 if self.store_detections:
