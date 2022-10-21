@@ -70,6 +70,10 @@ def main():
         "-x", "--exclude", help="Comma separated list of classes (ids) to exclude when peforming detection. Consult model/<model_name>/label_map.pbtxt."
     )
 
+    parser.add_argument(
+        "-d", "--drone", default='anafi', help="Drone model ([anafi,usa]).  Used to define HFOV and VFOV for camera."
+    )
+
     args, _ = parser.parse_known_args()
 
     def object_engine_setup():
