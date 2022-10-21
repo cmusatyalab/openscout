@@ -225,7 +225,7 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
                         detections_above_threshold = True
                         logger.info("Detected : {} - Score: {:.3f}".format(self.detector.category_index[classes[i]]['name'],scores[i]))
                         #[y_min, x_min, y_max, x_max]
-                        box = boxes[i].tolist()
+                        box = boxes[i]
                         target_x_pix = int((box[3] - box[1] / 2.0) + box[1] * image_np.shape[1])
                         target_y_pix = int((box[2] - box[0] / 2.0) + box[0] * image_np.shape[0])
                         lat, lon = self.estimateGPS(extras.location.latitude, extras.location.longitude, extras.status.gimbal_pitch, extras.status.bearing, extras.location.altitude, target_x_pix, target_y_pix )
@@ -235,8 +235,8 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
                         else:
                             detection_log.info("{},{},{},{},{:.3f},".format(extras.drone_id, extras.location.latitude, extras.location.longitude, self.detector.category_index[classes[i]]['name'], scores[i]))
 
-            logger.info(json.dumps(r,sort_keys=True, indent=4))
             if detections_above_threshold:
+                logger.info(json.dumps(r,sort_keys=True, indent=4))
                 result.payload = json.dumps(r).encode(encoding="utf-8")
                 result_wrapper.results.append(result)
 
