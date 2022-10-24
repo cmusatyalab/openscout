@@ -231,9 +231,9 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
                         lat, lon = self.estimateGPS(extras.location.latitude, extras.location.longitude, extras.status.gimbal_pitch, extras.status.bearing, extras.location.altitude, target_x_pix, target_y_pix )
                         r.append({'id': i, 'class': self.detector.category_index[classes[i]]['name'], 'score': scores[i], 'lat': lat, 'lon': lon})
                         if self.store_detections:
-                            detection_log.info("{},{},{},{},{:.3f},{}".format(extras.drone_id, extras.location.latitude, extras.location.longitude, self.detector.category_index[classes[i]]['name'],scores[i], os.environ["WEBSERVER"]+"/"+filename))
+                            detection_log.info("{},{},{},{},{:.3f},{}".format(extras.drone_id, lat, lon, self.detector.category_index[classes[i]]['name'],scores[i], os.environ["WEBSERVER"]+"/"+filename))
                         else:
-                            detection_log.info("{},{},{},{},{:.3f},".format(extras.drone_id, extras.location.latitude, extras.location.longitude, self.detector.category_index[classes[i]]['name'], scores[i]))
+                            detection_log.info("{},{},{},{},{:.3f},".format(extras.drone_id, lat, lon, self.detector.category_index[classes[i]]['name'], scores[i]))
 
             if detections_above_threshold:
                 logger.info(json.dumps(r,sort_keys=True, indent=4))
