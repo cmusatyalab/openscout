@@ -164,7 +164,7 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
 
         logger.info("Camera centered at: ({0}, {1}, {2})".format(camera_center[0], camera_center[1], camera_center[2]))
 
-        target_yaw_angle = -1 * ((target_x_pix - pixel_center[0]) / pixel_center[0]) * (HFOV / 2)
+        target_yaw_angle = ((target_x_pix - pixel_center[0]) / pixel_center[0]) * (HFOV / 2)
         target_pitch_angle = ((target_y_pix - pixel_center[1]) / pixel_center[1]) * (VFOV / 2)
         r = R.from_euler('ZYX', [drone_yaw + target_yaw_angle, 0, camera_pitch + target_pitch_angle], degrees=True) # Rotate the camera center vector to target center.
         target_dir = r.as_matrix().dot(north_vec)
@@ -226,9 +226,9 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
                         logger.info("Detected : {} - Score: {:.3f}".format(self.detector.category_index[classes[i]]['name'],scores[i]))
                         #[y_min, x_min, y_max, x_max]
                         box = boxes[i]
-                        target_x_pix = int((box[3] - box[1] / 2.0) + box[1] * image_np.shape[1])
-                        target_y_pix = int((box[2] - box[0] / 2.0) + box[0] * image_np.shape[0])
-                        lat, lon = self.estimateGPS(extras.location.latitude, extras.location.longitude, extras.status.gimbal_pitch, extras.status.bearing, extras.location.altitude, target_x_pix, target_y_pix )
+                        target_x_pix = int(((box[3] - box[1] / 2.0) + box[1]) * image_np.shape[1])
+                        target_y_pix = int(((box[2] - box[0] / 2.0) + box[0]) * image_np.shape[0])
+                        lat, lon = self.estimateGPS(extras.location.latitude, extras.location.longitude, extras.status.gimbal_pitch, extras.status.bearing*(180 /np.pi), extras.location.altitude, target_x_pix, target_y_pix )
                         r.append({'id': i, 'class': self.detector.category_index[classes[i]]['name'], 'score': scores[i], 'lat': lat, 'lon': lon})
                         if self.store_detections:
                             detection_log.info("{},{},{},{},{:.3f},{}".format(extras.drone_id, lat, lon, self.detector.category_index[classes[i]]['name'],scores[i], os.environ["WEBSERVER"]+"/"+filename))
