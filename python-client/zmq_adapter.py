@@ -63,6 +63,7 @@ class ZmqAdapter:
         extras.drone_id = self.client_id
         extras.location.latitude = self.location['latitude']
         extras.location.longitude = self.location['longitude']
+        extras.location.altitude = self.location['altitude']
         extras.detection_model = self.model
         extras.status.gimbal_pitch = self.gimbal_pitch
         extras.status.bearing = self.heading
