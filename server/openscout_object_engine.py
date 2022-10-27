@@ -226,8 +226,8 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
                         logger.info("Detected : {} - Score: {:.3f}".format(self.detector.category_index[classes[i]]['name'],scores[i]))
                         #[y_min, x_min, y_max, x_max]
                         box = boxes[i]
-                        target_x_pix = int(((box[3] - box[1] / 2.0) + box[1]) * image_np.shape[1])
-                        target_y_pix = int(((box[2] - box[0] / 2.0) + box[0]) * image_np.shape[0])
+                        target_x_pix = int(((box[3] - box[1]) / 2.0) + box[1]) * image_np.shape[1]
+                        target_y_pix = int(((box[2] - box[0]) / 2.0) + box[0]) * image_np.shape[0]
                         lat, lon = self.estimateGPS(extras.location.latitude, extras.location.longitude, extras.status.gimbal_pitch, extras.status.bearing*(180 /np.pi), extras.location.altitude, target_x_pix, target_y_pix )
                         r.append({'id': i, 'class': self.detector.category_index[classes[i]]['name'], 'score': scores[i], 'lat': lat, 'lon': lon, 'box': box})
                         if self.store_detections:
