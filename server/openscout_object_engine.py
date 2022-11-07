@@ -260,6 +260,7 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
                             min_score_thresh=self.threshold,
                             line_thickness=4)
 
+                        img = Image.fromarray(image_np)
                         draw = ImageDraw.Draw(img)
                         draw.bitmap((0,0), self.watermark, fill=None)
                         path = self.storage_path + "/detected/" + filename
