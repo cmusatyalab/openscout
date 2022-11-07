@@ -202,7 +202,7 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
                 self.model = extras.detection_model
 
         output_dict, image_np = self.process_image(input_frame.payloads[0])
-        timestamp_millis = int(time.time_ns() / 1000)
+        timestamp_millis = int(time.time() * 1000)
         status = gabriel_pb2.ResultWrapper.Status.SUCCESS
         result_wrapper = cognitive_engine.create_result_wrapper(status)
         result_wrapper.result_producer_name.value = self.ENGINE_NAME
