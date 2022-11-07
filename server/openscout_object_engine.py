@@ -128,6 +128,8 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
             self.storage_path = os.getcwd()+"/images/"
             try:
                 os.mkdir(self.storage_path)
+                os.mkdir(self.storage_path+"/received")
+                os.mkdir(self.storage_path+"/detected")
             except FileExistsError:
                 logger.info("Images directory already exists.")
             logger.info("Storing detection images at {}".format(self.storage_path))
@@ -218,6 +220,9 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
 
             detections_above_threshold = False
             filename = str(timestamp_millis) + ".jpg"
+            img = Image.fromarray(image_np)
+            path = self.storage_path + "/received/" + filename
+            img.save(path, format="JPEG")
             r = []
             for i in range(0, len(classes)):
                 if self.exclusions is None or classes[i] not in self.exclusions:
@@ -255,10 +260,9 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
                             min_score_thresh=self.threshold,
                             line_thickness=4)
 
-                        img = Image.fromarray(image_np)
                         draw = ImageDraw.Draw(img)
                         draw.bitmap((0,0), self.watermark, fill=None)
-                        path = self.storage_path + filename
+                        path = self.storage_path + "/detected/" + filename
                         img.save(path, format="JPEG")
                         logger.info("Stored image: {}".format(path))
                     except IndexError as e:
