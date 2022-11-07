@@ -202,7 +202,7 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
                 self.model = extras.detection_model
 
         output_dict, image_np = self.process_image(input_frame.payloads[0])
-
+        timestamp_millis = int(time.time_ns() / 1000)
         status = gabriel_pb2.ResultWrapper.Status.SUCCESS
         result_wrapper = cognitive_engine.create_result_wrapper(status)
         result_wrapper.result_producer_name.value = self.ENGINE_NAME
@@ -217,7 +217,7 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
             result.payload_type = gabriel_pb2.PayloadType.TEXT
 
             detections_above_threshold = False
-            filename = str(time.time()) + ".jpg"
+            filename = str(timestamp_millis) + ".jpg"
             r = []
             for i in range(0, len(classes)):
                 if self.exclusions is None or classes[i] not in self.exclusions:
@@ -231,9 +231,9 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
                         lat, lon = self.estimateGPS(extras.location.latitude, extras.location.longitude, extras.status.gimbal_pitch, extras.status.bearing*(180 /np.pi), extras.location.altitude, target_x_pix, target_y_pix )
                         r.append({'id': i, 'class': self.detector.category_index[classes[i]]['name'], 'score': scores[i], 'lat': lat, 'lon': lon, 'box': box})
                         if self.store_detections:
-                            detection_log.info("{},{},{},{},{:.3f},{}".format(extras.drone_id, lat, lon, self.detector.category_index[classes[i]]['name'],scores[i], os.environ["WEBSERVER"]+"/"+filename))
+                            detection_log.info("{},{},{},{},{},{:.3f},{}".format(timestamp_millis, extras.drone_id, lat, lon, self.detector.category_index[classes[i]]['name'],scores[i], os.environ["WEBSERVER"]+"/"+filename))
                         else:
-                            detection_log.info("{},{},{},{},{:.3f},".format(extras.drone_id, lat, lon, self.detector.category_index[classes[i]]['name'], scores[i]))
+                            detection_log.info("{},{},{},{},{},{:.3f},".format(timestamp_millis, extras.drone_id, lat, lon, self.detector.category_index[classes[i]]['name'], scores[i]))
 
             if detections_above_threshold:
                 logger.info(json.dumps(r,sort_keys=True, indent=4))
