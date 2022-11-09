@@ -113,6 +113,11 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
         self.store_detections = args.store
         self.model = args.model
         self.drone_type = args.drone
+        #timing vars
+        self.count = 0
+        self.lasttime = time.time()
+        self.lastcount = 0
+        self.lastprint = self.lasttime
 
         if args.exclude:
             self.exclusions = list(map(int, args.exclude.split(","))) #split string to int list
@@ -202,7 +207,7 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
             else:
                 self.detector = TFPredictor(extras.detection_model)
                 self.model = extras.detection_model
-
+        self.t0 = time.time()
         output_dict, image_np = self.process_image(input_frame.payloads[0])
         timestamp_millis = int(time.time() * 1000)
         status = gabriel_pb2.ResultWrapper.Status.SUCCESS
@@ -236,7 +241,7 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
                         lat, lon = self.estimateGPS(extras.location.latitude, extras.location.longitude, extras.status.gimbal_pitch, extras.status.bearing*(180 /np.pi), extras.location.altitude, target_x_pix, target_y_pix )
                         r.append({'id': i, 'class': self.detector.category_index[classes[i]]['name'], 'score': scores[i], 'lat': lat, 'lon': lon, 'box': box})
                         if self.store_detections:
-                            detection_log.info("{},{},{},{},{},{:.3f},{}".format(timestamp_millis, extras.drone_id, lat, lon, self.detector.category_index[classes[i]]['name'],scores[i], os.environ["WEBSERVER"]+"/"+filename))
+                            detection_log.info("{},{},{},{},{},{:.3f},{}".format(timestamp_millis, extras.drone_id, lat, lon, self.detector.category_index[classes[i]]['name'],scores[i], os.environ["WEBSERVER"]+"/detected/"+filename))
                         else:
                             detection_log.info("{},{},{},{},{},{:.3f},".format(timestamp_millis, extras.drone_id, lat, lon, self.detector.category_index[classes[i]]['name'], scores[i]))
 
@@ -271,14 +276,31 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
                         logger.error(f"{boxes} {classes} {scores}")
                         return result_wrapper
 
+        self.count += 1
+        if self.t1 - self.lastprint > 5:
+            logger.info("inference time {0:.1f} ms, ".format((self.t1 - self.t0) * 1000), end="")
+            logger.info("wait {0:.1f} ms, ".format((self.t0 - self.lasttime) * 1000), end="")
+            logger.info("fps {0:.2f}".format(1.0 / (self.t1 - self.lasttime)))
+            logger.info(
+                "avg fps: {0:.2f}".format(
+                    (self.count - self.lastcount) / (self.t1 - self.lastprint)
+                )
+            )
+            self.lastcount = self.count
+            self.lastprint = self.t1
+
+        self.lasttime = self.t1
+
         return result_wrapper
 
     def process_image(self, image):
+        self.t0 = time.time()
         np_data = np.fromstring(image, dtype=np.uint8)
         img = cv2.imdecode(np_data, cv2.IMREAD_COLOR)
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
         output_dict = self.inference(img)
+        self.t1 = time.time()
         return output_dict, img
 
     def inference(self, img):
