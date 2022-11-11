@@ -278,8 +278,8 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
 
         self.count += 1
         if self.t1 - self.lastprint > 5:
-            logger.info("inference time {0:.1f} ms, ".format((self.t1 - self.t0) * 1000), end="")
-            logger.info("wait {0:.1f} ms, ".format((self.t0 - self.lasttime) * 1000), end="")
+            logger.info("inference time {0:.1f} ms, ".format((self.t1 - self.t0) * 1000))
+            logger.info("wait {0:.1f} ms, ".format((self.t0 - self.lasttime) * 1000))
             logger.info("fps {0:.2f}".format(1.0 / (self.t1 - self.lasttime)))
             logger.info(
                 "avg fps: {0:.2f}".format(
