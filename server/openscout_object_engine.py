@@ -18,7 +18,6 @@
 #
 #
 
-import base64
 import time
 import os
 import cv2
@@ -27,27 +26,12 @@ import logging
 from gabriel_server import cognitive_engine
 from gabriel_protocol import gabriel_pb2
 from cnc_protocol import cnc_pb2
-from io import BytesIO
 from PIL import Image, ImageDraw
-import tensorflow as tf 
-tf.compat.v1.enable_eager_execution() 
-from object_detection.utils import ops as utils_ops
-from object_detection.utils import label_map_util
-from object_detection.utils import visualization_utils as vis_util
 import traceback
 import json
 from scipy.spatial.transform import Rotation as R
 
-#PATCHES
-# patch tf1 into `utils.ops`
-utils_ops.tf = tf.compat.v2
-
-# Patch the location of gfile
-tf.gfile = tf.io.gfile
-
-#tf.get_logger().warning('test')
-# WARNING:tensorflow:test
-tf.get_logger().setLevel('ERROR')
+import torch
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -59,56 +43,28 @@ formatter = logging.Formatter('%(message)s')
 fh.setFormatter(formatter)
 detection_log.addHandler(fh)
 
-class TFPredictor():
-    def __init__(self,model):
+class PytorchPredictor():
+    def __init__(self, model, threshold):
         path_prefix = './model/'
-        model_path = path_prefix+ model +'/saved_model'
-        label_map_file_path = path_prefix + model +'/label_map.pbtxt'
+        model_path = path_prefix+ model +'.pt'
         logger.info(f"Loading new model {model} at {model_path}...")
         self.detection_model = self.load_model(model_path)
-        self.category_index = label_map_util.create_category_index_from_labelmap(label_map_file_path, use_display_name=True) 
+        self.detection_model.conf = threshold
         self.output_dict = None
 
-    def load_model(self,model_dir):   
-        model = tf.compat.v2.saved_model.load(export_dir=str(model_dir), tags=None)
-        model = model.signatures['serving_default'] 
+    def load_model(self, model_path):
+        # Load model
+        model = torch.hub.load('ultralytics/yolov5', 'custom', path=model_path)
         return model 
     
-    def infer(self, image):  
-        image = np.asarray(image)  
-        # The input needs to be a tensor, convert it using `tf.convert_to_tensor`.
-        input_tensor = tf.convert_to_tensor(image)
-        # The model expects a batch of images, so add an axis with `tf.newaxis`.
-        input_tensor = input_tensor[tf.newaxis,...]
-
-        # Run inference
-        output_dict = self.detection_model(input_tensor)
-        num_detections = int(output_dict.pop('num_detections'))
-        output_dict = {key:value[0, :num_detections].numpy() 
-                         for key,value in output_dict.items()}
-        output_dict['num_detections'] = num_detections
-
-          # detection_classes should be ints.
-        output_dict['detection_classes'] = output_dict['detection_classes'].astype(np.int64)
-
-          # Handle models with masks:
-        if 'detection_masks' in output_dict:
-          # Reframe the the bbox mask to the image size.
-          detection_masks_reframed = utils_ops.reframe_box_masks_to_image_masks(
-                    output_dict['detection_masks'], output_dict['detection_boxes'],
-                     image.shape[0], image.shape[1])
-          detection_masks_reframed = tf.cast(detection_masks_reframed > 0.5,
-                                               tf.uint8)
-          output_dict['detection_masks_reframed'] = detection_masks_reframed.numpy()
-
-        self.output_dict = output_dict
-        return output_dict
+    def infer(self, image):
+        return self.model(image)
 
 class OpenScoutObjectEngine(cognitive_engine.Engine):
     ENGINE_NAME = "openscout-object"
 
     def __init__(self, args):
-        self.detector = TFPredictor(args.model)
+        self.detector = PytorchPredictor(args.model, args.threshold)
         self.threshold = args.threshold
         self.store_detections = args.store
         self.model = args.model
@@ -125,7 +81,7 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
         else:
             self.exclusions = None
 
-        logger.info("TensorFlowPredictor initialized with the following model path: {}".format(args.model))
+        logger.info("Predictor initialized with the following model path: {}".format(args.model))
         logger.info("Confidence Threshold: {}".format(self.threshold))
 
         if self.store_detections:
@@ -205,45 +161,48 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
             if not os.path.exists('./model/'+ extras.detection_model):
                 logger.error(f"Model named {extras.detection_model} not found. Sticking with previous model.")
             else:
-                self.detector = TFPredictor(extras.detection_model)
+                self.detector = PytorchPredictor(extras.detection_model, self.threshold)
                 self.model = extras.detection_model
         self.t0 = time.time()
-        output_dict, image_np = self.process_image(input_frame.payloads[0])
+        results, image_np= self.process_image(input_frame.payloads[0])
         timestamp_millis = int(time.time() * 1000)
         status = gabriel_pb2.ResultWrapper.Status.SUCCESS
         result_wrapper = cognitive_engine.create_result_wrapper(status)
         result_wrapper.result_producer_name.value = self.ENGINE_NAME
 
-        if output_dict['num_detections'] > 0:
-            #convert numpy arrays to python lists
-            classes = output_dict['detection_classes'].tolist()
-            boxes = output_dict['detection_boxes'].tolist()
-            scores = output_dict['detection_scores'].tolist()
+        filename = str(timestamp_millis) + ".jpg"
+        img = Image.fromarray(image_np)
+        path = self.storage_path + "/received/" + filename
+        img.save(path, format="JPEG")
+
+        if len(results.pred) > 0:
+            df = results.pandas().xyxy[0] # pandas dataframe
+            logger.debug(df)
+            #convert dataframe to python lists
+            classes = df['class'].values.tolist()
+            scores = df['confidence'].values.tolist()
+            names = df['name'].values.tolist()
 
             result = gabriel_pb2.ResultWrapper.Result()
             result.payload_type = gabriel_pb2.PayloadType.TEXT
 
             detections_above_threshold = False
-            filename = str(timestamp_millis) + ".jpg"
-            img = Image.fromarray(image_np)
-            path = self.storage_path + "/received/" + filename
-            img.save(path, format="JPEG")
             r = []
             for i in range(0, len(classes)):
                 if self.exclusions is None or classes[i] not in self.exclusions:
                     if(scores[i] > self.threshold):
                         detections_above_threshold = True
-                        logger.info("Detected : {} - Score: {:.3f}".format(self.detector.category_index[classes[i]]['name'],scores[i]))
+                        logger.info("Detected : {} - Score: {:.3f}".format(names[i],scores[i]))
                         #[y_min, x_min, y_max, x_max]
-                        box = boxes[i]
+                        box = [df['ymin'][i], df['xmin'][i], df['ymax'][i], df['xmax'][i]]
                         target_x_pix = int(((box[3] - box[1]) / 2.0) + box[1]) * image_np.shape[1]
                         target_y_pix = int(((box[2] - box[0]) / 2.0) + box[0]) * image_np.shape[0]
                         lat, lon = self.estimateGPS(extras.location.latitude, extras.location.longitude, extras.status.gimbal_pitch, extras.status.bearing*(180 /np.pi), extras.location.altitude, target_x_pix, target_y_pix )
-                        r.append({'id': i, 'class': self.detector.category_index[classes[i]]['name'], 'score': scores[i], 'lat': lat, 'lon': lon, 'box': box})
+                        r.append({'id': i, 'class': names[i], 'score': scores[i], 'lat': lat, 'lon': lon, 'box': box})
                         if self.store_detections:
-                            detection_log.info("{},{},{},{},{},{:.3f},{}".format(timestamp_millis, extras.drone_id, lat, lon, self.detector.category_index[classes[i]]['name'],scores[i], os.environ["WEBSERVER"]+"/detected/"+filename))
+                            detection_log.info("{},{},{},{},{},{:.3f},{}".format(timestamp_millis, extras.drone_id, lat, lon, names[i],scores[i], os.environ["WEBSERVER"]+"/detected/"+filename))
                         else:
-                            detection_log.info("{},{},{},{},{},{:.3f},".format(timestamp_millis, extras.drone_id, lat, lon, self.detector.category_index[classes[i]]['name'], scores[i]))
+                            detection_log.info("{},{},{},{},{},{:.3f},".format(timestamp_millis, extras.drone_id, lat, lon, names[i], scores[i]))
 
             if detections_above_threshold:
                 logger.info(json.dumps(r,sort_keys=True, indent=4))
@@ -252,20 +211,9 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
 
                 if self.store_detections:
                     try:
-                        boxes = output_dict['detection_boxes']
-                        classes = output_dict['detection_classes']
-                        scores = output_dict['detection_scores']
-                        vis_util.visualize_boxes_and_labels_on_image_array(
-                            image_np,
-                            boxes,
-                            classes,
-                            scores,
-                            self.detector.category_index,
-                            use_normalized_coordinates=True,
-                            min_score_thresh=self.threshold,
-                            line_thickness=4)
-
-                        img = Image.fromarray(image_np)
+                        #results._run(save=True, labels=True, save_dir=Path("openscout-vol/"))
+                        results.render()
+                        img = Image.fromarray(results.ims[0])
                         draw = ImageDraw.Draw(img)
                         draw.bitmap((0,0), self.watermark, fill=None)
                         path = self.storage_path + "/detected/" + filename
@@ -273,7 +221,6 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
                         logger.info("Stored image: {}".format(path))
                     except IndexError as e:
                         logger.error(f"IndexError while getting bounding boxes [{traceback.format_exc()}]")
-                        logger.error(f"{boxes} {classes} {scores}")
                         return result_wrapper
 
         self.count += 1
@@ -305,5 +252,5 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
 
     def inference(self, img):
         """Allow timing engine to override this"""
-        return self.detector.infer(img)
+        return self.detector.detection_model(img)
 
