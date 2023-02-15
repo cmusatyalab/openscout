@@ -22,8 +22,6 @@ from gabriel_server.network_engine import engine_runner
 from openscout_face_engine import OpenFaceEngine, MSFaceEngine
 from timing_engine import TimingMSFaceEngine, TimingOpenFaceEngine
 import logging
-import time
-import cv2
 import argparse
 import subprocess
 

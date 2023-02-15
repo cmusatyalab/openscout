@@ -26,7 +26,6 @@ import logging
 from gabriel_server import cognitive_engine
 from gabriel_protocol import gabriel_pb2
 from openscout_protocol import openscout_pb2
-from io import BytesIO
 from PIL import Image, ImageDraw
 import traceback
 

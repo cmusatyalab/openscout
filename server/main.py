@@ -20,10 +20,7 @@
 #
 from gabriel_server.network_engine import server_runner
 import logging
-import time
-import cv2
 import argparse
-import importlib
 
 DEFAULT_PORT = 9099
 DEFAULT_NUM_TOKENS = 2

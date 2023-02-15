@@ -1,6 +1,6 @@
 gabriel-server==2.0.1
 opencv-python>=3, <5
-py-cpuinfo
+Pillow
+requests
 #required for MS Face Cognitive Service
 azure-cognitiveservices-vision-face
-asyncio

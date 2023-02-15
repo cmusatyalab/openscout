@@ -18,29 +18,20 @@
 #
 #
 
-import base64
 import time
 import os
-import uuid
-import cv2
-import numpy as np
 import logging
 from gabriel_server import cognitive_engine
 from gabriel_protocol import gabriel_pb2
 from openscout_protocol import openscout_pb2
-import asyncio
-import io
-import glob
-import uuid
 import requests
 import json
-from urllib.parse import urlparse
 from io import BytesIO
 from PIL import Image, ImageDraw
 from azure.cognitiveservices.vision.face import FaceClient
+from azure.cognitiveservices.vision.face.models import TrainingStatusType, APIErrorException
 from msrest.authentication import CognitiveServicesCredentials
 from msrest.exceptions import ValidationError
-from azure.cognitiveservices.vision.face.models import TrainingStatusType, Person, SnapshotObjectType, OperationStatusType, APIErrorException
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)

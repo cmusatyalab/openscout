@@ -22,8 +22,6 @@ from gabriel_server.network_engine import engine_runner
 from openscout_object_engine import OpenScoutObjectEngine
 from timing_engine import TimingObjectEngine
 import logging
-import time
-import cv2
 import argparse
 import subprocess
 
