@@ -18,14 +18,16 @@
 #
 #
 
-from openscout_object_engine import OpenScoutObjectEngine
-from openscout_face_engine import OpenFaceEngine, MSFaceEngine
 import time
 
-#TODO: these timing engines need work as the metrics here are still inherited from OpenRTiST
+from openscout_face_engine import MSFaceEngine, OpenFaceEngine
+from openscout_object_engine import OpenScoutObjectEngine
+
+
+# TODO: these timing engines need work as the metrics here are still inherited from OpenRTiST
 class TimingOpenFaceEngine(OpenFaceEngine):
     def __init__(self, args):
-        super().__init__(args )
+        super().__init__(args)
         self.count = 0
         self.lasttime = time.time()
         self.lastcount = 0
@@ -63,9 +65,10 @@ class TimingOpenFaceEngine(OpenFaceEngine):
 
         return results
 
+
 class TimingMSFaceEngine(MSFaceEngine):
     def __init__(self, args):
-        super().__init__(args )
+        super().__init__(args)
         self.count = 0
         self.lasttime = time.time()
         self.lastcount = 0
@@ -110,9 +113,10 @@ class TimingMSFaceEngine(MSFaceEngine):
 
         return results
 
+
 class TimingObjectEngine(OpenScoutObjectEngine):
     def __init__(self, args):
-        super().__init__(args )
+        super().__init__(args)
         self.count = 0
         self.lasttime = time.time()
         self.lastcount = 0

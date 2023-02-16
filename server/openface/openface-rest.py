@@ -14,49 +14,45 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import subprocess
-import time
-from flask import Flask, jsonify, request
-from flask_restful import Resource, Api
-start = time.time()
-
 import argparse
-import cv2
+import logging
 import os
 import pickle
+import subprocess
 import sys
-import logging
-
+import time
 from operator import itemgetter
 
+import cv2
 import numpy as np
-np.set_printoptions(precision=2)
 import pandas as pd
+from flask import Flask, jsonify, request
+from flask_restful import Api, Resource
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
+from sklearn.grid_search import GridSearchCV
+from sklearn.mixture import GMM
+from sklearn.naive_bayes import GaussianNB
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import LabelEncoder
+from sklearn.svm import SVC
+from sklearn.tree import DecisionTreeClassifier
 
 import openface
 
-from sklearn.pipeline import Pipeline
-from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
-from sklearn.preprocessing import LabelEncoder
-from sklearn.svm import SVC
-from sklearn.grid_search import GridSearchCV
-from sklearn.mixture import GMM
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.naive_bayes import GaussianNB
+start = time.time()
+np.set_printoptions(precision=2)
 
 fileDir = os.path.dirname(os.path.realpath(__file__))
-modelDir = os.path.join(fileDir, 'openface/models')
-dlibModelDir = os.path.join(modelDir, 'dlib')
-openfaceModelDir = os.path.join(modelDir, 'openface')
-dlibFacePredictor = os.path.join(dlibModelDir,
-            "shape_predictor_68_face_landmarks.dat")
-networkModel = os.path.join(openfaceModelDir,
-            'nn4.small2.v1.t7')
+modelDir = os.path.join(fileDir, "openface/models")
+dlibModelDir = os.path.join(modelDir, "dlib")
+openfaceModelDir = os.path.join(modelDir, "openface")
+dlibFacePredictor = os.path.join(dlibModelDir, "shape_predictor_68_face_landmarks.dat")
+networkModel = os.path.join(openfaceModelDir, "nn4.small2.v1.t7")
 
 imgDim = 96
 verbose = True
 ldaDim = -1
-'''
+"""
         choices=[
             'LinearSvm',
             'GridSearchSvm',
@@ -65,11 +61,12 @@ ldaDim = -1
             'DecisionTree',
             'GaussianNB',
             'DBN'],
-'''
-classifier = 'LinearSvm'
+"""
+classifier = "LinearSvm"
 logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
+
 
 def getRep(img):
     start = time.time()
@@ -92,21 +89,24 @@ def getRep(img):
     for bb in bbs:
         start = time.time()
         alignedFace = align.align(
-            imgDim,
-            rgbImg,
-            bb,
-            landmarkIndices=openface.AlignDlib.OUTER_EYES_AND_NOSE)
+            imgDim, rgbImg, bb, landmarkIndices=openface.AlignDlib.OUTER_EYES_AND_NOSE
+        )
         if alignedFace is None:
             raise Exception("Unable to align image.")
         if verbose:
             logger.debug("Alignment took {} seconds.".format(time.time() - start))
-            logger.debug("This bbox is centered at {}, {}".format(bb.center().x, bb.center().y))
+            logger.debug(
+                "This bbox is centered at {}, {}".format(bb.center().x, bb.center().y)
+            )
 
         start = time.time()
         rep = net.forward(alignedFace)
         if verbose:
-            logger.debug("Neural network forward pass took {} seconds.".format(
-                time.time() - start))
+            logger.debug(
+                "Neural network forward pass took {} seconds.".format(
+                    time.time() - start
+                )
+            )
         reps.append((bb, rep))
     sreps = sorted(reps, key=lambda x: x[0])
     return sreps
@@ -115,25 +115,36 @@ def getRep(img):
 def train():
     alignDir = "/tmp/aligned/"
     featureDir = "/tmp/features/"
-    #align
-    alignCmd ="/root/openface/util/align-dlib.py " + workDir + " align outerEyesAndNose " + alignDir + " --size 96"
+    # align
+    alignCmd = (
+        "/root/openface/util/align-dlib.py "
+        + workDir
+        + " align outerEyesAndNose "
+        + alignDir
+        + " --size 96"
+    )
     logger.info("Aligning training images...")
     subprocess.call(alignCmd, shell=True)
-    #delete cache file
+    # delete cache file
     deleteCmd = "rm -rf /tmp/aligned/cache.t7"
     logger.info("Removing cache file...")
     subprocess.call(deleteCmd, shell=True)
-    #represent
-    representCmd = "/root/openface/batch-represent/main.lua -outDir " + featureDir + " -data " + alignDir
+    # represent
+    representCmd = (
+        "/root/openface/batch-represent/main.lua -outDir "
+        + featureDir
+        + " -data "
+        + alignDir
+    )
     logger.info("Generating representations...")
     subprocess.call(representCmd, shell=True)
-    #generate SVM
+    # generate SVM
     logger.info("Loading embeddings...")
     fname = "{}/labels.csv".format(featureDir)
     labels = pd.read_csv(fname, header=None).as_matrix()[:, 1]
-    labels = map(itemgetter(1),
-                map(os.path.split,
-                    map(os.path.dirname, labels)))  # Get the directory.
+    labels = map(
+        itemgetter(1), map(os.path.split, map(os.path.dirname, labels))
+    )  # Get the directory.
     fname = "{}/reps.csv".format(featureDir)
     embeddings = pd.read_csv(fname, header=None).as_matrix()
     le = LabelEncoder().fit(labels)
@@ -141,60 +152,65 @@ def train():
     nClasses = len(le.classes_)
     logger.info("Training for {} classes.".format(nClasses))
 
-    if classifier == 'LinearSvm':
-        clf = SVC(C=1, kernel='linear', probability=True)
-    elif classifier == 'GridSearchSvm':
-        logger.info("""
+    if classifier == "LinearSvm":
+        clf = SVC(C=1, kernel="linear", probability=True)
+    elif classifier == "GridSearchSvm":
+        logger.info(
+            """
         Warning: In our experiences, using a grid search over SVM hyper-parameters only
         gives marginally better performance than a linear SVM with C=1 and
         is not worth the extra computations of performing a grid search.
-        """)
+        """
+        )
         param_grid = [
-            {'C': [1, 10, 100, 1000],
-            'kernel': ['linear']},
-            {'C': [1, 10, 100, 1000],
-            'gamma': [0.001, 0.0001],
-            'kernel': ['rbf']}
+            {"C": [1, 10, 100, 1000], "kernel": ["linear"]},
+            {"C": [1, 10, 100, 1000], "gamma": [0.001, 0.0001], "kernel": ["rbf"]},
         ]
         clf = GridSearchCV(SVC(C=1, probability=True), param_grid, cv=5)
-    elif classifier == 'GMM':  # Doesn't work best
+    elif classifier == "GMM":  # Doesn't work best
         clf = GMM(n_components=nClasses)
 
     # ref:
     # http://scikit-learn.org/stable/auto_examples/classification/plot_classifier_comparison.html#example-classification-plot-classifier-comparison-py
-    elif classifier == 'RadialSvm':  # Radial Basis Function kernel
+    elif classifier == "RadialSvm":  # Radial Basis Function kernel
         # works better with C = 1 and gamma = 2
-        clf = SVC(C=1, kernel='rbf', probability=True, gamma=2)
-    elif classifier == 'DecisionTree':  # Doesn't work best
+        clf = SVC(C=1, kernel="rbf", probability=True, gamma=2)
+    elif classifier == "DecisionTree":  # Doesn't work best
         clf = DecisionTreeClassifier(max_depth=20)
-    elif classifier == 'GaussianNB':
+    elif classifier == "GaussianNB":
         clf = GaussianNB()
 
     # ref: https://jessesw.com/Deep-Learning/
-    elif classifier == 'DBN':
+    elif classifier == "DBN":
         from nolearn.dbn import DBN
-        clf = DBN([embeddings.shape[1], 500, labelsNum[-1:][0] + 1],  # i/p nodes, hidden nodes, o/p nodes
-                learn_rates=0.3,
-                # Smaller steps mean a possibly more accurate result, but the
-                # training will take longer
-                learn_rate_decays=0.9,
-                # a factor the initial learning rate will be multiplied by
-                # after each iteration of the training
-                epochs=300,  # no of iternation
-                # dropouts = 0.25, # Express the percentage of nodes that
-                # will be randomly dropped as a decimal.
-                verbose=1)
+
+        clf = DBN(
+            [
+                embeddings.shape[1],
+                500,
+                labelsNum[-1:][0] + 1,
+            ],  # i/p nodes, hidden nodes, o/p nodes
+            learn_rates=0.3,
+            # Smaller steps mean a possibly more accurate result, but the
+            # training will take longer
+            learn_rate_decays=0.9,
+            # a factor the initial learning rate will be multiplied by
+            # after each iteration of the training
+            epochs=300,  # no of iternation
+            # dropouts = 0.25, # Express the percentage of nodes that
+            # will be randomly dropped as a decimal.
+            verbose=1,
+        )
 
     if ldaDim > 0:
         clf_final = clf
-        clf = Pipeline([('lda', LDA(n_components=ldaDim)),
-                        ('clf', clf_final)])
+        clf = Pipeline([("lda", LDA(n_components=ldaDim)), ("clf", clf_final)])
 
     clf.fit(embeddings, labelsNum)
 
     fName = "{}/classifier.pkl".format(workDir)
     logger.info("Saving classifier to '{}'".format(fName))
-    with open(fName, 'w') as f:
+    with open(fName, "w") as f:
         pickle.dump((le, clf), f)
 
 
@@ -218,22 +234,27 @@ def detect(img):
     faces = []
     for bb in bbs:
         face = {
-            'bb-tl-x': bb.left(),
-            'bb-tl-y': bb.top(),
-            'bb-br-x': bb.right(),
-            'bb-br-y': bb.bottom(),
+            "bb-tl-x": bb.left(),
+            "bb-tl-y": bb.top(),
+            "bb-br-x": bb.right(),
+            "bb-br-y": bb.bottom(),
         }
         faces.append(face)
-        logger.info("Face found at ({},{}), ({},{}).".format(bb.left(), bb.top(), bb.right(), bb.bottom()))
+        logger.info(
+            "Face found at ({},{}), ({},{}).".format(
+                bb.left(), bb.top(), bb.right(), bb.bottom()
+            )
+        )
     return faces
+
 
 def infer(img):
     fName = "{}/classifier.pkl".format(workDir)
-    with open(fName, 'rb') as f:
+    with open(fName, "rb") as f:
         if sys.version_info[0] < 3:
-                (le, clf) = pickle.load(f)
+            (le, clf) = pickle.load(f)
         else:
-                (le, clf) = pickle.load(f, encoding='latin1')
+            (le, clf) = pickle.load(f, encoding="latin1")
 
     reps = getRep(img)
     if len(reps) > 1:
@@ -254,28 +275,33 @@ def infer(img):
             dist = np.linalg.norm(rep - clf.means_[maxI])
             logger.info("  + Distance from the mean: {}".format(dist))
         person = {
-            'name': person.decode('utf-8'),
-            'confidence': confidence,
-            'bb-tl-x': bbx.left(),
-            'bb-tl-y': bbx.top(),
-            'bb-br-x': bbx.right(),
-            'bb-br-y': bbx.bottom(),
+            "name": person.decode("utf-8"),
+            "confidence": confidence,
+            "bb-tl-x": bbx.left(),
+            "bb-tl-y": bbx.top(),
+            "bb-br-x": bbx.right(),
+            "bb-br-y": bbx.bottom(),
         }
         persons.append(person)
     for p in persons:
-        logger.info("Predict {} with {:.2f} confidence.".format(p['name'], p['confidence']))
+        logger.info(
+            "Predict {} with {:.2f} confidence.".format(p["name"], p["confidence"])
+        )
     return persons
+
 
 app = Flask(__name__)
 api = Api(app)
 
-@api.resource('/train')
+
+@api.resource("/train")
 class Training(Resource):
     def get(self):
         train()
-        return {'training': 'successful'}
-        
-@api.resource('/infer')
+        return {"training": "successful"}
+
+
+@api.resource("/infer")
 class Infer(Resource):
     def post(self):
         persons = {}
@@ -285,7 +311,8 @@ class Infer(Resource):
             logger.debug(e)
         return jsonify(persons)
 
-@api.resource('/detect')
+
+@api.resource("/detect")
 class Detect(Resource):
     def post(self):
         faces = {}
@@ -295,28 +322,34 @@ class Detect(Resource):
             logger.debug(e)
         return jsonify(faces)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--port', type=int, help="Port to listen on (default=5000).", default=5000)
+    parser.add_argument(
+        "--port", type=int, help="Port to listen on (default=5000).", default=5000
+    )
 
     parser.add_argument(
-        'workDir',
+        "workDir",
         type=str,
-        help="The input work directory containing 'reps.csv' and 'labels.csv'. Obtained from aligning a directory with 'align-dlib' and getting the representations with 'batch-represent'.")
+        help="The input work directory containing 'reps.csv' and 'labels.csv'. Obtained from aligning a directory with 'align-dlib' and getting the representations with 'batch-represent'.",
+    )
 
     args = parser.parse_args()
 
     start = time.time()
 
     align = openface.AlignDlib(dlibFacePredictor)
-    net = openface.TorchNeuralNet(networkModel, imgDim=imgDim,
-                                  cuda=False)
+    net = openface.TorchNeuralNet(networkModel, imgDim=imgDim, cuda=False)
     workDir = args.workDir
     if verbose:
-        logger.debug("Loading the dlib and OpenFace models took {} seconds.".format(
-            time.time() - start))
+        logger.debug(
+            "Loading the dlib and OpenFace models took {} seconds.".format(
+                time.time() - start
+            )
+        )
         start = time.time()
 
-    app.run(host='0.0.0.0', port=args.port)
+    app.run(host="0.0.0.0", port=args.port)
