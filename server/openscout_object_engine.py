@@ -73,14 +73,14 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
             self.exclusions = list(
                 map(int, args.exclude.split(","))
             )  # split string to int list
-            logger.info("Excluding the following class ids: {}".format(self.exclusions))
+            logger.info(f"Excluding the following class ids: {self.exclusions}")
         else:
             self.exclusions = None
 
         logger.info(
-            "Predictor initialized with the following model path: {}".format(args.model)
+            f"Predictor initialized with the following model path: {args.model}"
         )
-        logger.info("Confidence Threshold: {}".format(self.threshold))
+        logger.info(f"Confidence Threshold: {self.threshold}")
 
         if self.store_detections:
             self.watermark = Image.open(os.getcwd() + "/watermark.png")
@@ -89,7 +89,7 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
                 os.mkdir(self.storage_path)
             except FileExistsError:
                 logger.info("Images directory already exists.")
-            logger.info("Storing detection images at {}".format(self.storage_path))
+            logger.info(f"Storing detection images at {self.storage_path}")
 
     def handle(self, input_frame):
         if input_frame.payload_type == gabriel_pb2.PayloadType.TEXT:
@@ -143,11 +143,11 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
                     if self.exclusions is None or classes[i] not in self.exclusions:
                         detections_above_threshold = True
                         logger.info(
-                            "Detected : {} - Score: {:.3f}".format(names[i], scores[i])
+                            f"Detected : {names[i]} - Score: {scores[i]:.3f}"
                         )
                         if i > 0:
                             r += ", "
-                        r += "Detected {} ({:.3f})".format(names[i], scores[i])
+                        r += f"Detected {names[i]} ({scores[i]:.3f})"
                         if self.store_detections:
                             detection_log.info(
                                 "{},{},{},{},{},{:.3f},{}".format(
@@ -185,7 +185,7 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
                         draw.bitmap((0, 0), self.watermark, fill=None)
                         path = self.storage_path + filename
                         img.save(path, format="JPEG")
-                        logger.info("Stored image: {}".format(path))
+                        logger.info(f"Stored image: {path}")
                     except IndexError:
                         logger.exception("IndexError while getting bounding boxes")
                         return result_wrapper

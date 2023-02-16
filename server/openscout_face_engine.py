@@ -58,8 +58,8 @@ class OpenFaceEngine(cognitive_engine.Engine):
         self.threshold = args.threshold
         self.store_detections = args.store
 
-        logger.info("OpenFace server: {}".format(args.endpoint))
-        logger.info("Confidence Threshold: {}".format(self.threshold))
+        logger.info(f"OpenFace server: {args.endpoint}")
+        logger.info(f"Confidence Threshold: {self.threshold}")
         if self.store_detections:
             self.watermark = Image.open(os.getcwd() + "/watermark.png")
             self.storage_path = os.getcwd() + "/images/"
@@ -67,7 +67,7 @@ class OpenFaceEngine(cognitive_engine.Engine):
                 os.mkdir(self.storage_path)
             except FileExistsError:
                 logger.info("Images directory already exists.")
-            logger.info("Storing detection images at {}".format(self.storage_path))
+            logger.info(f"Storing detection images at {self.storage_path}")
         self.train()
 
     def train(self):
@@ -116,7 +116,7 @@ class OpenFaceEngine(cognitive_engine.Engine):
                 logger.info("Directory already exists.")
             img = Image.open(image)
             path = training_dir + str(time.time()) + ".png"
-            logger.info("Stored training image: {}".format(path))
+            logger.info(f"Stored training image: {path}")
             img.save(path)
             self.new_faces = True
         else:
@@ -189,7 +189,7 @@ class OpenFaceEngine(cognitive_engine.Engine):
                                 draw.bitmap((0, 0), self.watermark, fill=None)
                                 filename = str(time.time()) + ".png"
                                 path = self.storage_path + filename
-                                logger.info("Stored image: {}".format(path))
+                                logger.info(f"Stored image: {path}")
                                 bb_img.save(path)
                                 bio = BytesIO()
                                 bb_img.save(bio, format="JPEG")
@@ -253,8 +253,8 @@ class MSFaceEngine(cognitive_engine.Engine):
         # train statically for now
         self.train()
 
-        logger.info("Cognitive server endpoint: {}".format(args.endpoint))
-        logger.info("Confidence Threshold: {}".format(self.threshold))
+        logger.info(f"Cognitive server endpoint: {args.endpoint}")
+        logger.info(f"Confidence Threshold: {self.threshold}")
         if self.store_detections:
             self.watermark = Image.open(os.getcwd() + "/watermark.png")
             self.storage_path = os.getcwd() + "/images/"
@@ -262,7 +262,7 @@ class MSFaceEngine(cognitive_engine.Engine):
                 os.mkdir(self.storage_path)
             except FileExistsError:
                 logger.info("Images directory already exists.")
-            logger.info("Storing detection images at {}".format(self.storage_path))
+            logger.info(f"Storing detection images at {self.storage_path}")
 
     def train(self):
         training_dir = os.getcwd() + "/training/"
@@ -292,7 +292,7 @@ class MSFaceEngine(cognitive_engine.Engine):
             for filename in files:
                 filepath = root + os.sep + filename
                 logger.info(
-                    "Adding training image {} to person {}".format(filename, name)
+                    f"Adding training image {filename} to person {name}"
                 )
 
                 if filepath.endswith(".jpg") or filepath.endswith(".png"):
@@ -310,7 +310,7 @@ class MSFaceEngine(cognitive_engine.Engine):
             training_status = self.face_client.person_group.get_training_status(
                 self.PERSON_GROUP_ID
             )
-            logger.info("Training status: {}.".format(training_status.status))
+            logger.info(f"Training status: {training_status.status}.")
             if training_status.status is TrainingStatusType.succeeded:
                 break
             elif training_status.status is TrainingStatusType.failed:
@@ -364,7 +364,7 @@ class MSFaceEngine(cognitive_engine.Engine):
                 logger.info("Directory already exists.")
             img = Image.open(image)
             path = training_dir + str(time.time()) + ".png"
-            logger.info("Stored training image: {}".format(path))
+            logger.info(f"Stored training image: {path}")
             img.save(path)
             self.new_faces = True
         else:
@@ -446,7 +446,7 @@ class MSFaceEngine(cognitive_engine.Engine):
                                     draw.bitmap((0, 0), self.watermark, fill=None)
                                     filename = str(time.time()) + ".png"
                                     path = self.storage_path + filename
-                                    logger.info("Stored image: {}".format(path))
+                                    logger.info(f"Stored image: {path}")
                                     bb_img.save(path)
                                     detection_log.info(
                                         "{},{},{},{},{:.3f},{}".format(
