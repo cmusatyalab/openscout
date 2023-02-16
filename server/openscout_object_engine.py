@@ -21,7 +21,6 @@
 import logging
 import os
 import time
-import traceback
 
 import cv2
 import numpy as np
@@ -100,7 +99,7 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
             result_wrapper.result_producer_name.value = self.ENGINE_NAME
             result = gabriel_pb2.ResultWrapper.Result()
             result.payload_type = gabriel_pb2.PayloadType.TEXT
-            result.payload = f"Ignoring TEXT payload.".encode(encoding="utf-8")
+            result.payload = "Ignoring TEXT payload.".encode(encoding="utf-8")
             result_wrapper.results.append(result)
             return result_wrapper
 
@@ -187,10 +186,8 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
                         path = self.storage_path + filename
                         img.save(path, format="JPEG")
                         logger.info("Stored image: {}".format(path))
-                    except IndexError as e:
-                        logger.error(
-                            f"IndexError while getting bounding boxes [{traceback.format_exc()}]"
-                        )
+                    except IndexError:
+                        logger.exception("IndexError while getting bounding boxes")
                         return result_wrapper
 
         return result_wrapper
