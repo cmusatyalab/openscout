@@ -18,14 +18,16 @@
 #
 #
 
-from openscout_object_engine import OpenScoutObjectEngine
-from openscout_face_engine import OpenFaceEngine, MSFaceEngine
 import time
 
-#TODO: these timing engines need work as the metrics here are still inherited from OpenRTiST
+from openscout_face_engine import MSFaceEngine, OpenFaceEngine
+from openscout_object_engine import OpenScoutObjectEngine
+
+
+# TODO: these timing engines need work as the metrics here are still inherited from OpenRTiST
 class TimingOpenFaceEngine(OpenFaceEngine):
     def __init__(self, args):
-        super().__init__(args )
+        super().__init__(args)
         self.count = 0
         self.lasttime = time.time()
         self.lastcount = 0
@@ -38,13 +40,13 @@ class TimingOpenFaceEngine(OpenFaceEngine):
 
         self.count += 1
         if self.t3 - self.lastprint > 5:
-            print("pre {0:.1f} ms, ".format((self.t1 - self.t0) * 1000), end="")
-            print("infer {0:.1f} ms, ".format((self.t2 - self.t1) * 1000), end="")
-            print("post {0:.1f} ms, ".format((self.t3 - self.t2) * 1000), end="")
-            print("wait {0:.1f} ms, ".format((self.t0 - self.lasttime) * 1000), end="")
-            print("fps {0:.2f}".format(1.0 / (self.t3 - self.lasttime)))
+            print(f"pre {(self.t1 - self.t0) * 1000:.1f} ms, ", end="")
+            print(f"infer {(self.t2 - self.t1) * 1000:.1f} ms, ", end="")
+            print(f"post {(self.t3 - self.t2) * 1000:.1f} ms, ", end="")
+            print(f"wait {(self.t0 - self.lasttime) * 1000:.1f} ms, ", end="")
+            print(f"fps {1.0 / (self.t3 - self.lasttime):.2f}")
             print(
-                "avg fps: {0:.2f}".format(
+                "avg fps: {:.2f}".format(
                     (self.count - self.lastcount) / (self.t3 - self.lastprint)
                 )
             )
@@ -63,9 +65,10 @@ class TimingOpenFaceEngine(OpenFaceEngine):
 
         return results
 
+
 class TimingMSFaceEngine(MSFaceEngine):
     def __init__(self, args):
-        super().__init__(args )
+        super().__init__(args)
         self.count = 0
         self.lasttime = time.time()
         self.lastcount = 0
@@ -78,13 +81,13 @@ class TimingMSFaceEngine(MSFaceEngine):
 
         self.count += 1
         if self.t3 - self.lastprint > 5:
-            print("pre {0:.1f} ms, ".format((self.t1 - self.t0) * 1000), end="")
-            print("infer {0:.1f} ms, ".format((self.t2 - self.t1) * 1000), end="")
-            print("post {0:.1f} ms, ".format((self.t3 - self.t2) * 1000), end="")
-            print("wait {0:.1f} ms, ".format((self.t0 - self.lasttime) * 1000), end="")
-            print("fps {0:.2f}".format(1.0 / (self.t3 - self.lasttime)))
+            print(f"pre {(self.t1 - self.t0) * 1000:.1f} ms, ", end="")
+            print(f"infer {(self.t2 - self.t1) * 1000:.1f} ms, ", end="")
+            print(f"post {(self.t3 - self.t2) * 1000:.1f} ms, ", end="")
+            print(f"wait {(self.t0 - self.lasttime) * 1000:.1f} ms, ", end="")
+            print(f"fps {1.0 / (self.t3 - self.lasttime):.2f}")
             print(
-                "avg fps: {0:.2f}".format(
+                "avg fps: {:.2f}".format(
                     (self.count - self.lastcount) / (self.t3 - self.lastprint)
                 )
             )
@@ -110,9 +113,10 @@ class TimingMSFaceEngine(MSFaceEngine):
 
         return results
 
+
 class TimingObjectEngine(OpenScoutObjectEngine):
     def __init__(self, args):
-        super().__init__(args )
+        super().__init__(args)
         self.count = 0
         self.lasttime = time.time()
         self.lastcount = 0
@@ -125,13 +129,13 @@ class TimingObjectEngine(OpenScoutObjectEngine):
 
         self.count += 1
         if self.t3 - self.lastprint > 5:
-            print("pre {0:.1f} ms, ".format((self.t1 - self.t0) * 1000), end="")
-            print("infer {0:.1f} ms, ".format((self.t2 - self.t1) * 1000), end="")
-            print("post {0:.1f} ms, ".format((self.t3 - self.t2) * 1000), end="")
-            print("wait {0:.1f} ms, ".format((self.t0 - self.lasttime) * 1000), end="")
-            print("fps {0:.2f}".format(1.0 / (self.t3 - self.lasttime)))
+            print(f"pre {(self.t1 - self.t0) * 1000:.1f} ms, ", end="")
+            print(f"infer {(self.t2 - self.t1) * 1000:.1f} ms, ", end="")
+            print(f"post {(self.t3 - self.t2) * 1000:.1f} ms, ", end="")
+            print(f"wait {(self.t0 - self.lasttime) * 1000:.1f} ms, ", end="")
+            print(f"fps {1.0 / (self.t3 - self.lasttime):.2f}")
             print(
-                "avg fps: {0:.2f}".format(
+                "avg fps: {:.2f}".format(
                     (self.count - self.lastcount) / (self.t3 - self.lastprint)
                 )
             )

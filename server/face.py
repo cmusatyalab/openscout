@@ -18,16 +18,16 @@
 #   limitations under the License.
 #
 #
-from gabriel_server.network_engine import engine_runner
-from openscout_face_engine import OpenFaceEngine, MSFaceEngine
-from timing_engine import TimingMSFaceEngine, TimingOpenFaceEngine
-import logging
-import time
-import cv2
 import argparse
+import logging
 import subprocess
 
-SOURCE = 'openscout'
+from gabriel_server.network_engine import engine_runner
+
+from openscout_face_engine import MSFaceEngine, OpenFaceEngine
+from timing_engine import TimingMSFaceEngine, TimingOpenFaceEngine
+
+SOURCE = "openscout"
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -47,28 +47,41 @@ def main():
     )
 
     parser.add_argument(
-        "-s", "--store", action="store_true", default=False, help="Store images with bounding boxes"
+        "-s",
+        "--store",
+        action="store_true",
+        default=False,
+        help="Store images with bounding boxes",
     )
 
     parser.add_argument(
-        "-src", "--source",  default=SOURCE, help="Source for engine to register with."
+        "-src", "--source", default=SOURCE, help="Source for engine to register with."
     )
 
     parser.add_argument(
-        "-g", "--gabriel",  default="tcp://gabriel-server:5555", help="Gabriel server endpoint."
+        "-g",
+        "--gabriel",
+        default="tcp://gabriel-server:5555",
+        help="Gabriel server endpoint.",
     )
 
     parser.add_argument(
-        "--endpoint", default="http://openface-service:5000", help="Endpoint for either OpenFace service or MS Face service"
+        "--endpoint",
+        default="http://openface-service:5000",
+        help="Endpoint for either OpenFace service or MS Face service",
     )
 
-    #arguments specific to MS Face Container
+    # arguments specific to MS Face Container
     parser.add_argument(
-        "--msface", action="store_true", default=False, help="Use MS Face Cognitive Service for face recognition"
+        "--msface",
+        action="store_true",
+        default=False,
+        help="Use MS Face Cognitive Service for face recognition",
     )
 
     parser.add_argument(
-        "--apikey",  help="(MS Face Service) API key for cognitive service. Required for metering."
+        "--apikey",
+        help="(MS Face Service) API key for cognitive service. Required for metering.",
     )
 
     args, _ = parser.parse_known_args()
@@ -90,7 +103,13 @@ def main():
     logger.info("Starting filebeat...")
     subprocess.call(["service", "filebeat", "start"])
     logger.info("Starting face recognition cognitive engine..")
-    engine_runner.run(engine=face_engine_setup(), source_name=args.source, server_address=args.gabriel, all_responses_required=True)
+    engine_runner.run(
+        engine=face_engine_setup(),
+        source_name=args.source,
+        server_address=args.gabriel,
+        all_responses_required=True,
+    )
+
 
 if __name__ == "__main__":
     main()
