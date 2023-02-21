@@ -23,19 +23,20 @@ import os
 import time
 
 import cv2
+import importlib_resources
 import numpy as np
 import torch
 from gabriel_protocol import gabriel_pb2
 from gabriel_server import cognitive_engine
 from PIL import Image, ImageDraw
 
-from openscout_protocol import openscout_pb2
+from .protocol import openscout_pb2
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 detection_log = logging.getLogger("object-engine")
-fh = logging.FileHandler("/openscout/server/openscout-object-engine.log")
+fh = logging.FileHandler("/openscout-server/openscout-object-engine.log")
 fh.setLevel(logging.INFO)
 formatter = logging.Formatter("%(message)s")
 fh.setFormatter(formatter)
@@ -83,7 +84,10 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
         logger.info(f"Confidence Threshold: {self.threshold}")
 
         if self.store_detections:
-            self.watermark = Image.open(os.getcwd() + "/watermark.png")
+            watermark_path = importlib_resources.files("openscout").joinpath(
+                "watermark.png"
+            )
+            self.watermark = Image.open(watermark_path)
             self.storage_path = os.getcwd() + "/images/"
             try:
                 os.mkdir(self.storage_path)
@@ -108,7 +112,8 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
         if extras.model != "" and extras.model != self.model:
             if not os.path.exists("./model/" + extras.model):
                 logger.error(
-                    f"Model named {extras.model} not found. Sticking with previous model."
+                    f"Model named {extras.model} not found. "
+                    "Sticking with previous model."
                 )
             else:
                 self.detector = PytorchPredictor(extras.detection_model, self.threshold)
@@ -142,9 +147,7 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
                 if scores[i] > self.threshold:
                     if self.exclusions is None or classes[i] not in self.exclusions:
                         detections_above_threshold = True
-                        logger.info(
-                            f"Detected : {names[i]} - Score: {scores[i]:.3f}"
-                        )
+                        logger.info(f"Detected : {names[i]} - Score: {scores[i]:.3f}")
                         if i > 0:
                             r += ", "
                         r += f"Detected {names[i]} ({scores[i]:.3f})"
@@ -178,7 +181,11 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
 
                 if self.store_detections:
                     try:
-                        # results._run(save=True, labels=True, save_dir=Path("openscout-vol/"))
+                        # results._run(
+                        #     save=True,
+                        #     labels=True,
+                        #     save_dir=Path("openscout-vol/")
+                        # )
                         results.render()
                         img = Image.fromarray(results.ims[0])
                         draw = ImageDraw.Draw(img)

@@ -1,0 +1,26 @@
+# SPDX-FileCopyrightText: 2022 Carnegie Mellon University
+# SPDX-License-Identifier: 0BSD
+
+[tool.poe.tasks.build]
+help = "Build sdist and wheel"
+cmd = "poetry build"
+
+[tool.poe.tasks.check]
+help = "Run some pre-commit checks"
+sequence = [
+    "poetry run pyupgrade --py37-plus src/openscout/*.py",
+    "poetry run isort src",
+    "poetry run black src",
+    "poetry run flake8 src",
+    #"poetry run mypy src",
+    #"poetry run pytest",
+]
+default_item_type = "cmd"
+
+[tool.poe.tasks.update-dependencies]
+help = "Update dependencies"
+sequence = [
+    {cmd = "poetry update"},
+    {ref = "check"},
+    {cmd = "git commit --no-verify -m 'Updated dependencies' poetry.lock"},
+]

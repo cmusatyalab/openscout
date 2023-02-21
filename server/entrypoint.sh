@@ -1,5 +1,5 @@
 #!/bin/bash
 args=$*
-./main.py $args &
-./face.py $args &
-./obj.py $args
+.venv/bin/openscout $args &
+.venv/bin/openscout-face-engine $args &
+.venv/bin/openscout-object-engine $args

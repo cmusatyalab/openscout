@@ -24,6 +24,7 @@ import os
 import time
 from io import BytesIO
 
+import importlib_resources
 import requests
 from azure.cognitiveservices.vision.face import FaceClient
 from azure.cognitiveservices.vision.face.models import (
@@ -36,13 +37,13 @@ from msrest.authentication import CognitiveServicesCredentials
 from msrest.exceptions import ValidationError
 from PIL import Image, ImageDraw
 
-from openscout_protocol import openscout_pb2
+from .protocol import openscout_pb2
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 detection_log = logging.getLogger("face-engine")
-fh = logging.FileHandler("/openscout/server/openscout-face-engine.log")
+fh = logging.FileHandler("/openscout-server/openscout-face-engine.log")
 fh.setLevel(logging.INFO)
 formatter = logging.Formatter("%(message)s")
 fh.setFormatter(formatter)
@@ -61,7 +62,10 @@ class OpenFaceEngine(cognitive_engine.Engine):
         logger.info(f"OpenFace server: {args.endpoint}")
         logger.info(f"Confidence Threshold: {self.threshold}")
         if self.store_detections:
-            self.watermark = Image.open(os.getcwd() + "/watermark.png")
+            watermark_path = importlib_resources.files("openscout").joinpath(
+                "watermark.png"
+            )
+            self.watermark = Image.open(watermark_path)
             self.storage_path = os.getcwd() + "/images/"
             try:
                 os.mkdir(self.storage_path)
@@ -256,7 +260,10 @@ class MSFaceEngine(cognitive_engine.Engine):
         logger.info(f"Cognitive server endpoint: {args.endpoint}")
         logger.info(f"Confidence Threshold: {self.threshold}")
         if self.store_detections:
-            self.watermark = Image.open(os.getcwd() + "/watermark.png")
+            watermark_path = importlib_resources.files("openscout").joinpath(
+                "watermark.png"
+            )
+            self.watermark = Image.open(watermark_path)
             self.storage_path = os.getcwd() + "/images/"
             try:
                 os.mkdir(self.storage_path)
@@ -291,9 +298,7 @@ class MSFaceEngine(cognitive_engine.Engine):
                 )
             for filename in files:
                 filepath = root + os.sep + filename
-                logger.info(
-                    f"Adding training image {filename} to person {name}"
-                )
+                logger.info(f"Adding training image {filename} to person {name}")
 
                 if filepath.endswith(".jpg") or filepath.endswith(".png"):
                     w = open(filepath, "r+b")
