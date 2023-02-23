@@ -11,7 +11,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
     PIP_DEFAULT_TIMEOUT=100 \
     POETRY_NO_INTERACTION=1 \
     POETRY_VIRTUALENVS_IN_PROJECT=1 \
-    PATH="/openscout-server/.venv:$PATH"
+    PATH="/openscout-server/.venv/bin:$PATH"
 
 RUN apt-get update && apt-get install -y \
     git \

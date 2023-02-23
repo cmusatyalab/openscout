@@ -11,7 +11,7 @@ services:
     ports:
       - "9099:9099"
       - "5555:5555"
-    entrypoint: [".venv/bin/openscout"]
+    entrypoint: ["openscout"]
     restart: unless-stopped
     networks:
       - openscout-net
@@ -33,9 +33,9 @@ services:
     container_name: openscout-face-engine
     restart: unless-stopped
     privileged: true
-    entrypoint: [".venv/bin/openscout-face-engine", "--endpoint", "http://openface-service:5000", "--threshold", "${FACE_THRESHOLD}", "${STORE}"]
+    entrypoint: ["openscout-face-engine", "--endpoint", "http://openface-service:5000", "--threshold", "${FACE_THRESHOLD}", "${STORE}"]
     #to use MS Face Cognitive Service, make this the entrypoint instead and use the ms-face-server container...
-    #entrypoint: [".venv/bin/openscout-face-engine", "--msface", "--endpoint", "http://ms-face-service:5000","--apikey", "${API_KEY}", "--threshold", "${FACE_THRESHOLD}"]
+    #entrypoint: ["openscout-face-engine", "--msface", "--endpoint", "http://ms-face-service:5000","--apikey", "${API_KEY}", "--threshold", "${FACE_THRESHOLD}"]
     volumes:
       - ./openscout-vol:/openscout-server/images/
       - training-vol:/openscout-server/training/
@@ -55,7 +55,7 @@ services:
     container_name: openscout-object-engine
     restart: unless-stopped
     privileged: true
-    entrypoint: [".venv/bin/openscout-object-engine", "--model", "${DNN}", "--threshold", "${OBJ_THRESHOLD}", "--exclude", "${EXCLUSIONS}", "${STORE}"]
+    entrypoint: ["openscout-object-engine", "--model", "${DNN}", "--threshold", "${OBJ_THRESHOLD}", "--exclude", "${EXCLUSIONS}", "${STORE}"]
     # for NVIDIA GPUs
     # gpus: all     # not yet supported by docker-compose
     runtime: nvidia
