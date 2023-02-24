@@ -20,7 +20,8 @@
 
 import time
 
-from .face_engine import MSFaceEngine, OpenFaceEngine
+from .msface_engine import MSFaceEngine
+from .openface_engine import OpenFaceEngine
 from .object_engine import OpenScoutObjectEngine
 
 

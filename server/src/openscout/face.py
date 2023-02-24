@@ -24,7 +24,8 @@ import subprocess
 
 from gabriel_server.network_engine import engine_runner
 
-from .face_engine import MSFaceEngine, OpenFaceEngine
+from .msface_engine import MSFaceEngine
+from .openface_engine import OpenFaceEngine
 from .timing_engine import TimingMSFaceEngine, TimingOpenFaceEngine
 
 SOURCE = "openscout"
