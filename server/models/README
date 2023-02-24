@@ -1,0 +1,8 @@
+This directory will be mounted into the object-engine container and can be
+used to expose custom models.
+
+You can download a pretrained model from torchhub by running,
+
+    $ poetry run python
+    >>> import torch
+    >>> model = torch.hub.load("ultralytics/yolov5", "yolov5s", pretrained=True)
