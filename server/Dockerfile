@@ -15,6 +15,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
 
 RUN apt-get update && apt-get install -y \
     git \
+    libgl1 \
     python3.7 \
     python3.7-venv \
     python3-pip \
@@ -33,13 +34,13 @@ RUN python3.7 -m pip install --upgrade pip keyrings.alt \
 WORKDIR /openscout-server
 
 # install dependencies
-COPY poetry.lock pyproject.toml ./
-#RUN --mount=type=cache,target=/root/.cache \
-#    poetry install --only main --no-root
-RUN poetry install --only main --no-root \
- && rm -rf /root/.cache/pypoetry
+COPY poetry.lock pyproject.toml /openscout-server/
+RUN --mount=type=cache,target=/root/.cache \
+    poetry install --no-cache --only main --no-root
+#RUN poetry install --no-cache --only main --no-root \
+# && rm -rf /root/.cache/pypoetry
 
-COPY . ./
+COPY . /openscout-server/
 
 RUN poetry install --only main \
  && cp elk/filebeat.yml /etc/filebeat/filebeat.yml \
