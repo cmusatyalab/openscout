@@ -45,7 +45,7 @@ detection_log.addHandler(fh)
 
 class PytorchPredictor:
     def __init__(self, model, threshold):
-        path_prefix = "./model/"
+        path_prefix = "./models/"
         model_path = path_prefix + model + ".pt"
         logger.info(f"Loading new model {model} at {model_path}...")
         self.detection_model = self.load_model(model_path)
@@ -90,7 +90,8 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
             self.watermark = Image.open(watermark_path)
             self.storage_path = os.getcwd() + "/images/"
             try:
-                os.mkdir(self.storage_path)
+                os.makedirs(self.storage_path + "/received/")
+                os.makedirs(self.storage_path + "/detected/")
             except FileExistsError:
                 logger.info("Images directory already exists.")
             logger.info(f"Storing detection images at {self.storage_path}")
@@ -110,7 +111,7 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
         extras = cognitive_engine.unpack_extras(openscout_pb2.Extras, input_frame)
 
         if extras.model != "" and extras.model != self.model:
-            if not os.path.exists("./model/" + extras.model):
+            if not os.path.exists("./models/" + extras.model):
                 logger.error(
                     f"Model named {extras.model} not found. "
                     "Sticking with previous model."
@@ -125,10 +126,11 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
         result_wrapper = cognitive_engine.create_result_wrapper(status)
         result_wrapper.result_producer_name.value = self.ENGINE_NAME
 
-        filename = str(timestamp_millis) + ".jpg"
-        img = Image.fromarray(image_np)
-        path = self.storage_path + "/received/" + filename
-        img.save(path, format="JPEG")
+        if self.store_detections:
+            filename = str(timestamp_millis) + ".jpg"
+            img = Image.fromarray(image_np)
+            path = self.storage_path + "received/" + filename
+            img.save(path, format="JPEG")
 
         if len(results.pred) > 0:
             df = results.pandas().xyxy[0]  # pandas dataframe
@@ -142,7 +144,7 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
             result.payload_type = gabriel_pb2.PayloadType.TEXT
 
             detections_above_threshold = False
-            r = []
+            r = ""
             for i in range(0, len(classes)):
                 if scores[i] > self.threshold:
                     if self.exclusions is None or classes[i] not in self.exclusions:
@@ -155,19 +157,19 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
                             detection_log.info(
                                 "{},{},{},{},{},{:.3f},{}".format(
                                     timestamp_millis,
-                                    extras.drone_id,
+                                    extras.client_id,
                                     extras.location.latitude,
                                     extras.location.longitude,
                                     names[i],
                                     scores[i],
-                                    os.environ["WEBSERVER"] + "/detected/" + filename,
+                                    os.environ["WEBSERVER"] + "/images/detected/" + filename,
                                 )
                             )
                         else:
                             detection_log.info(
                                 "{},{},{},{},{},{:.3f},".format(
                                     timestamp_millis,
-                                    extras.drone_id,
+                                    extras.client_id,
                                     extras.location.latitude,
                                     extras.location.longitude,
                                     names[i],
@@ -190,7 +192,7 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
                         img = Image.fromarray(results.ims[0])
                         draw = ImageDraw.Draw(img)
                         draw.bitmap((0, 0), self.watermark, fill=None)
-                        path = self.storage_path + filename
+                        path = self.storage_path + "/detected/" + filename
                         img.save(path, format="JPEG")
                         logger.info(f"Stored image: {path}")
                     except IndexError:
