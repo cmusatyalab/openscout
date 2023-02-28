@@ -160,7 +160,7 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
                                     extras.location.longitude,
                                     names[i],
                                     scores[i],
-                                    os.environ["WEBSERVER"] + "/images/detected/" + filename,
+                                    os.environ["WEBSERVER"] + "/detected/" + filename,
                                 )
                             )
                         else:
