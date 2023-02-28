@@ -18,13 +18,12 @@
 #
 #
 
-import json
 import logging
 import os
 import time
 from io import BytesIO
 
-import requests
+import importlib_resources
 from azure.cognitiveservices.vision.face import FaceClient
 from azure.cognitiveservices.vision.face.models import (
     APIErrorException,
@@ -36,198 +35,17 @@ from msrest.authentication import CognitiveServicesCredentials
 from msrest.exceptions import ValidationError
 from PIL import Image, ImageDraw
 
-from openscout_protocol import openscout_pb2
+from .protocol import openscout_pb2
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-detection_log = logging.getLogger("face-engine")
-fh = logging.FileHandler("/openscout/server/openscout-face-engine.log")
+detection_log = logging.getLogger("msface-engine")
+fh = logging.FileHandler("/openscout-server/openscout-msface-engine.log")
 fh.setLevel(logging.INFO)
 formatter = logging.Formatter("%(message)s")
 fh.setFormatter(formatter)
 detection_log.addHandler(fh)
-
-
-class OpenFaceEngine(cognitive_engine.Engine):
-    ENGINE_NAME = "openscout-face"
-
-    def __init__(self, args):
-        self.new_faces = False
-        self.endpoint = args.endpoint
-        self.threshold = args.threshold
-        self.store_detections = args.store
-
-        logger.info(f"OpenFace server: {args.endpoint}")
-        logger.info(f"Confidence Threshold: {self.threshold}")
-        if self.store_detections:
-            self.watermark = Image.open(os.getcwd() + "/watermark.png")
-            self.storage_path = os.getcwd() + "/images/"
-            try:
-                os.mkdir(self.storage_path)
-            except FileExistsError:
-                logger.info("Images directory already exists.")
-            logger.info(f"Storing detection images at {self.storage_path}")
-        self.train()
-
-    def train(self):
-        response = requests.get("{}/{}".format(self.endpoint, "train")).json()
-        logger.info(response)
-
-    def infer(self, img):
-        headers = {"content-type": "image/jpeg"}
-        # send http request with image and receive response
-        response = requests.post(
-            "{}/{}".format(self.endpoint, "infer"), data=img, headers=headers
-        )
-        return response.text
-
-    def getRectangle(self, person):
-        return (
-            (person["bb-tl-x"], person["bb-tl-y"]),
-            (person["bb-br-x"], person["bb-br-y"]),
-        )
-
-    def handle(self, input_frame):
-        if input_frame.payload_type == gabriel_pb2.PayloadType.TEXT:
-            # if the payload is TEXT, say from a CNC client, we ignore
-            status = gabriel_pb2.ResultWrapper.Status.SUCCESS
-            result_wrapper = cognitive_engine.create_result_wrapper(status)
-            result_wrapper.result_producer_name.value = self.ENGINE_NAME
-            result = gabriel_pb2.ResultWrapper.Result()
-            result.payload_type = gabriel_pb2.PayloadType.TEXT
-            result.payload = "Ignoring TEXT payload.".encode(encoding="utf-8")
-            result_wrapper.results.append(result)
-            return result_wrapper
-
-        extras = cognitive_engine.unpack_extras(openscout_pb2.Extras, input_frame)
-
-        image = self.preprocess_image(input_frame.payloads[0])
-
-        status = gabriel_pb2.ResultWrapper.Status.SUCCESS
-        result_wrapper = cognitive_engine.create_result_wrapper(status)
-        result_wrapper.result_producer_name.value = self.ENGINE_NAME
-
-        if extras.is_training:
-            training_dir = os.getcwd() + "/training/" + extras.name + "/"
-            try:
-                os.mkdir(training_dir)
-            except FileExistsError:
-                logger.info("Directory already exists.")
-            img = Image.open(image)
-            path = training_dir + str(time.time()) + ".png"
-            logger.info(f"Stored training image: {path}")
-            img.save(path)
-            self.new_faces = True
-        else:
-            # if we received new images for training and training has ended...
-            if self.new_faces:
-                self.train()
-                self.new_faces = False
-                result = gabriel_pb2.ResultWrapper.Result()
-                result.payload_type = gabriel_pb2.PayloadType.TEXT
-                result.payload = "Retraining complete.".encode(encoding="utf-8")
-                result_wrapper.results.append(result)
-            else:
-                faces_recognized = False
-                response = self.infer(image)
-                if response is not None:
-                    identities = json.loads(response)
-                    if len(identities) > 0:
-                        logger.debug(
-                            "Detected {} faces. Attempting recognition...".format(
-                                len(identities)
-                            )
-                        )
-                        # Identify faces
-                        for person in identities:
-                            logger.debug(person)
-                            if person["confidence"] > self.threshold:
-                                faces_recognized = True
-                                logger.info(
-                                    "Recognized: {} - Score: {:.3f}".format(
-                                        person["name"], person["confidence"]
-                                    )
-                                )
-                                result = gabriel_pb2.ResultWrapper.Result()
-                                result.payload_type = gabriel_pb2.PayloadType.TEXT
-                                result.payload = "Recognized {} ({:.3f})".format(
-                                    person["name"], person["confidence"]
-                                ).encode(encoding="utf-8")
-                                result_wrapper.results.append(result)
-                            else:
-                                logger.debug("Confidence did not exceed threshold.")
-                        if faces_recognized:
-                            if self.store_detections:
-                                bb_img = Image.open(image)
-
-                                draw = ImageDraw.Draw(bb_img)
-                                for person in identities:
-                                    draw.rectangle(
-                                        self.getRectangle(person),
-                                        width=4,
-                                        outline="red",
-                                    )
-                                    text = "{} ({:.3f})".format(
-                                        person["name"], person["confidence"]
-                                    )
-                                    w, h = draw.textsize(text)
-                                    xy = (
-                                        (self.getRectangle(person)[0]),
-                                        (
-                                            self.getRectangle(person)[0][0] + w,
-                                            self.getRectangle(person)[0][1] + h,
-                                        ),
-                                    )
-                                    draw.rectangle(
-                                        xy, width=4, outline="red", fill="red"
-                                    )
-                                    draw.text(
-                                        self.getRectangle(person)[0], text, fill="black"
-                                    )
-
-                                draw.bitmap((0, 0), self.watermark, fill=None)
-                                filename = str(time.time()) + ".png"
-                                path = self.storage_path + filename
-                                logger.info(f"Stored image: {path}")
-                                bb_img.save(path)
-                                bio = BytesIO()
-                                bb_img.save(bio, format="JPEG")
-
-                                detection_log.info(
-                                    "{},{},{},{},{:.3f},{}".format(
-                                        extras.client_id,
-                                        extras.location.latitude,
-                                        extras.location.longitude,
-                                        person["name"],
-                                        person["confidence"],
-                                        os.environ["WEBSERVER"] + "/" + filename,
-                                    )
-                                )
-                            else:
-                                detection_log.info(
-                                    "{},{},{},{},{:.3f},".format(
-                                        extras.client_id,
-                                        extras.location.latitude,
-                                        extras.location.longitude,
-                                        person["name"],
-                                        person["confidence"],
-                                    )
-                                )
-                        else:
-                            logger.debug(
-                                "No faces recognized with confidence above {}.".format(
-                                    self.threshold
-                                )
-                            )
-                    else:
-                        result = gabriel_pb2.ResultWrapper.Result()
-                        result.payload_type = gabriel_pb2.PayloadType.TEXT
-                        result.payload = "No faces detected.".encode(encoding="utf-8")
-        return result_wrapper
-
-    def preprocess_image(self, image):
-        return BytesIO(image)
 
 
 class MSFaceEngine(cognitive_engine.Engine):
@@ -256,7 +74,10 @@ class MSFaceEngine(cognitive_engine.Engine):
         logger.info(f"Cognitive server endpoint: {args.endpoint}")
         logger.info(f"Confidence Threshold: {self.threshold}")
         if self.store_detections:
-            self.watermark = Image.open(os.getcwd() + "/watermark.png")
+            watermark_path = importlib_resources.files("openscout").joinpath(
+                "watermark.png"
+            )
+            self.watermark = Image.open(watermark_path)
             self.storage_path = os.getcwd() + "/images/"
             try:
                 os.mkdir(self.storage_path)
@@ -291,9 +112,7 @@ class MSFaceEngine(cognitive_engine.Engine):
                 )
             for filename in files:
                 filepath = root + os.sep + filename
-                logger.info(
-                    f"Adding training image {filename} to person {name}"
-                )
+                logger.info(f"Adding training image {filename} to person {name}")
 
                 if filepath.endswith(".jpg") or filepath.endswith(".png"):
                     w = open(filepath, "r+b")

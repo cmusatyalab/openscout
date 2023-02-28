@@ -20,11 +20,13 @@
 
 import time
 
-from openscout_face_engine import MSFaceEngine, OpenFaceEngine
-from openscout_object_engine import OpenScoutObjectEngine
+from .msface_engine import MSFaceEngine
+from .openface_engine import OpenFaceEngine
+from .object_engine import OpenScoutObjectEngine
 
 
-# TODO: these timing engines need work as the metrics here are still inherited from OpenRTiST
+# TODO: these timing engines need work as the metrics here are still
+# inherited from OpenRTiST
 class TimingOpenFaceEngine(OpenFaceEngine):
     def __init__(self, args):
         super().__init__(args)

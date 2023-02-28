@@ -10,4 +10,4 @@ RUN python -m pip install --no-cache-dir \
 COPY ./openface-rest.py /root/openface-rest.py
 
 EXPOSE 5000
-ENTRYPOINT  ["python", "/root/openface-rest.py", "/openscout/server/training/"]
+ENTRYPOINT  ["python", "/root/openface-rest.py", "/openscout-server/training/"]

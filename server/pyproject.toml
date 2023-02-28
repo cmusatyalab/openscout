@@ -1,0 +1,59 @@
+# SPDX-FileCopyrightText: 2023 Carnegie Mellon University
+# SPDX-License-Identifier: 0BSD
+
+[tool.poetry]
+name = "openscout-server"
+version = "0.1.0"
+description = "Distributed Automated Situational Awareness"
+authors = [
+    "Carnegie Mellon University <satya+group@cs.cmu.edu>",
+    "Thomas Eiszler <teiszler@cs.cmu.edu",
+]
+license = "Apache-2.0"
+repository = "https://github.com/cmusatyalab/openscout"
+packages = [
+    {include = "openscout", from = "src"},
+]
+
+[tool.poetry.dependencies]
+python = ">=3.7,<3.11"  # numpy 1.21.2 restriction
+azure-cognitiveservices-vision-face = "^0.6.0"
+gabriel-server = "^2.1.1"
+importlib-resources = "^5.12.0"
+opencv-python = "^4.7.0.72"
+Pillow = "^9.4.0"
+requests = "^2.28.2"
+torch = "^1.13.1"
+yolov5 = "^7.0.9"
+
+[tool.poetry.group.dev.dependencies]
+black = "^23.1.0"
+flake8 = "^3.9.2"
+isort = "^5.11.5"
+poethepoet = "^0.18.1"
+pyupgrade = "^3.3.1"
+
+[tool.poetry.scripts]
+openscout = "openscout.__main__:main"
+openscout-face-engine = "openscout.face:main"
+openscout-object-engine = "openscout.obj:main"
+
+[tool.black]
+target-version = ["py37"]
+extend_exclude = ".*_pb2(_grpc)?.pyi?$"
+
+[tool.isort]
+py_version = 37
+profile = "black"
+extend_skip_glob = ["*_pb2.py"]
+
+[tool.poe]
+include = "tasks.toml"
+
+[tool.poetry-grpc-plugin]
+proto_path = "../protocol"
+python_out = "src/openscout/protocol"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

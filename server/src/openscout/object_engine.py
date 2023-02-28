@@ -23,19 +23,20 @@ import os
 import time
 
 import cv2
+import importlib_resources
 import numpy as np
 import torch
 from gabriel_protocol import gabriel_pb2
 from gabriel_server import cognitive_engine
+from pathlib import Path
 from PIL import Image, ImageDraw
-
-from openscout_protocol import openscout_pb2
+from .protocol import openscout_pb2
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 detection_log = logging.getLogger("object-engine")
-fh = logging.FileHandler("/openscout/server/openscout-object-engine.log")
+fh = logging.FileHandler("/openscout-server/openscout-object-engine.log")
 fh.setLevel(logging.INFO)
 formatter = logging.Formatter("%(message)s")
 fh.setFormatter(formatter)
@@ -44,8 +45,8 @@ detection_log.addHandler(fh)
 
 class PytorchPredictor:
     def __init__(self, model, threshold):
-        path_prefix = "./model/"
-        model_path = path_prefix + model + ".pt"
+        path_prefix = Path.cwd() / "models"
+        model_path = path_prefix / (model + ".pt")
         logger.info(f"Loading new model {model} at {model_path}...")
         self.detection_model = self.load_model(model_path)
         self.detection_model.conf = threshold
@@ -83,10 +84,14 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
         logger.info(f"Confidence Threshold: {self.threshold}")
 
         if self.store_detections:
-            self.watermark = Image.open(os.getcwd() + "/watermark.png")
-            self.storage_path = os.getcwd() + "/images/"
+            watermark_path = importlib_resources.files("openscout").joinpath(
+                "watermark.png"
+            )
+            self.watermark = Image.open(watermark_path)
+            self.storage_path = Path.cwd() / "images"
             try:
-                os.mkdir(self.storage_path)
+                (self.storage_path / "received").mkdir(parents=True, exist_ok=True)
+                (self.storage_path / "detected").mkdir(parents=True, exist_ok=True)
             except FileExistsError:
                 logger.info("Images directory already exists.")
             logger.info(f"Storing detection images at {self.storage_path}")
@@ -106,9 +111,10 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
         extras = cognitive_engine.unpack_extras(openscout_pb2.Extras, input_frame)
 
         if extras.model != "" and extras.model != self.model:
-            if not os.path.exists("./model/" + extras.model):
+            if not os.path.exists("./models/" + extras.model):
                 logger.error(
-                    f"Model named {extras.model} not found. Sticking with previous model."
+                    f"Model named {extras.model} not found. "
+                    "Sticking with previous model."
                 )
             else:
                 self.detector = PytorchPredictor(extras.detection_model, self.threshold)
@@ -120,10 +126,11 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
         result_wrapper = cognitive_engine.create_result_wrapper(status)
         result_wrapper.result_producer_name.value = self.ENGINE_NAME
 
-        filename = str(timestamp_millis) + ".jpg"
-        img = Image.fromarray(image_np)
-        path = self.storage_path + "/received/" + filename
-        img.save(path, format="JPEG")
+        if self.store_detections:
+            filename = str(timestamp_millis) + ".jpg"
+            img = Image.fromarray(image_np)
+            path = self.storage_path / "received" / filename
+            img.save(path, format="JPEG")
 
         if len(results.pred) > 0:
             df = results.pandas().xyxy[0]  # pandas dataframe
@@ -142,29 +149,25 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
                 if scores[i] > self.threshold:
                     if self.exclusions is None or classes[i] not in self.exclusions:
                         detections_above_threshold = True
-                        logger.info(
-                            f"Detected : {names[i]} - Score: {scores[i]:.3f}"
-                        )
-                        if i > 0:
-                            r += ", "
-                        r += f"Detected {names[i]} ({scores[i]:.3f})"
+                        logger.info(f"Detected : {names[i]} - Score: {scores[i]:.3f}")
+                        r.append(f"Detected {names[i]} ({scores[i]:.3f})")
                         if self.store_detections:
                             detection_log.info(
                                 "{},{},{},{},{},{:.3f},{}".format(
                                     timestamp_millis,
-                                    extras.drone_id,
+                                    extras.client_id,
                                     extras.location.latitude,
                                     extras.location.longitude,
                                     names[i],
                                     scores[i],
-                                    os.environ["WEBSERVER"] + "/detected/" + filename,
+                                    os.environ["WEBSERVER"] + "/images/detected/" + filename,
                                 )
                             )
                         else:
                             detection_log.info(
                                 "{},{},{},{},{},{:.3f},".format(
                                     timestamp_millis,
-                                    extras.drone_id,
+                                    extras.client_id,
                                     extras.location.latitude,
                                     extras.location.longitude,
                                     names[i],
@@ -173,17 +176,21 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
                             )
 
             if detections_above_threshold:
-                result.payload = r.encode(encoding="utf-8")
+                result.payload = ','.join(r).encode(encoding="utf-8")
                 result_wrapper.results.append(result)
 
                 if self.store_detections:
                     try:
-                        # results._run(save=True, labels=True, save_dir=Path("openscout-vol/"))
+                        # results._run(
+                        #     save=True,
+                        #     labels=True,
+                        #     save_dir=Path("openscout-vol/")
+                        # )
                         results.render()
                         img = Image.fromarray(results.ims[0])
                         draw = ImageDraw.Draw(img)
                         draw.bitmap((0, 0), self.watermark, fill=None)
-                        path = self.storage_path + filename
+                        path = self.storage_path / "detected" / filename
                         img.save(path, format="JPEG")
                         logger.info(f"Stored image: {path}")
                     except IndexError:

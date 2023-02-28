@@ -24,8 +24,8 @@ import subprocess
 
 from gabriel_server.network_engine import engine_runner
 
-from openscout_face_engine import MSFaceEngine, OpenFaceEngine
-from timing_engine import TimingMSFaceEngine, TimingOpenFaceEngine
+from .object_engine import OpenScoutObjectEngine
+from .timing_engine import TimingObjectEngine
 
 SOURCE = "openscout"
 
@@ -42,6 +42,18 @@ def main():
         "--timing", action="store_true", help="Print timing information"
     )
 
+    parser.add_argument("-p", "--port", type=int, default=9099, help="Set port number")
+
+    parser.add_argument(
+        "-m",
+        "--model",
+        default="coco",
+        help=(
+            "(OBJECT DETECTION) Subdirectory under /openscout-server/model/"
+            " which contains Tensorflow model to load initially."
+        ),
+    )
+
     parser.add_argument(
         "-r", "--threshold", type=float, default=0.85, help="Confidence threshold"
     )
@@ -55,10 +67,6 @@ def main():
     )
 
     parser.add_argument(
-        "-src", "--source", default=SOURCE, help="Source for engine to register with."
-    )
-
-    parser.add_argument(
         "-g",
         "--gabriel",
         default="tcp://gabriel-server:5555",
@@ -66,45 +74,33 @@ def main():
     )
 
     parser.add_argument(
-        "--endpoint",
-        default="http://openface-service:5000",
-        help="Endpoint for either OpenFace service or MS Face service",
-    )
-
-    # arguments specific to MS Face Container
-    parser.add_argument(
-        "--msface",
-        action="store_true",
-        default=False,
-        help="Use MS Face Cognitive Service for face recognition",
+        "-src", "--source", default=SOURCE, help="Source for engine to register with."
     )
 
     parser.add_argument(
-        "--apikey",
-        help="(MS Face Service) API key for cognitive service. Required for metering.",
+        "-x",
+        "--exclude",
+        help=(
+            "Comma separated list of classes (ids) to exclude when peforming detection."
+            " Consult model/<model_name>/label_map.pbtxt."
+        ),
     )
 
     args, _ = parser.parse_known_args()
 
-    def face_engine_setup():
-        if args.msface:
-            if args.timing:
-                engine = TimingMSFaceEngine(args)
-            else:
-                engine = MSFaceEngine(args)
+    def object_engine_setup():
+        if args.timing:
+            engine = TimingObjectEngine(args)
         else:
-            if args.timing:
-                engine = TimingOpenFaceEngine(args)
-            else:
-                engine = OpenFaceEngine(args)
+            engine = OpenScoutObjectEngine(args)
 
         return engine
 
     logger.info("Starting filebeat...")
     subprocess.call(["service", "filebeat", "start"])
-    logger.info("Starting face recognition cognitive engine..")
+    logger.info("Starting object detection cognitive engine..")
     engine_runner.run(
-        engine=face_engine_setup(),
+        engine=object_engine_setup(),
         source_name=args.source,
         server_address=args.gabriel,
         all_responses_required=True,

@@ -1,16 +1,20 @@
 # The environment variables such as 
 # ${FACE_THRESHOLD} and ${API_KEY} should
 # reside in a .env file along side docker-compose.yaml
-  
+#
+# To speed up build when buildkit is not yet enabled by default,
+# COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_BUILDKIT=1 docker-compose build
+
 version: '2.3'
 services:
   gabriel-server:
-    image: cmusatyalab/openscout:${OPENSCOUT_TAG}
+    #image: cmusatyalab/openscout:${OPENSCOUT_TAG}
+    build: .
     container_name: gabriel-server
     ports:
       - "9099:9099"
       - "5555:5555"
-    entrypoint: ["./main.py"]
+    entrypoint: ["openscout"]
     restart: unless-stopped
     networks:
       - openscout-net
@@ -27,16 +31,17 @@ services:
       - ./openscout-vol:/usr/local/apache2/htdocs
 
   face-engine:
-    image: cmusatyalab/openscout:${OPENSCOUT_TAG}
+    #image: cmusatyalab/openscout:${OPENSCOUT_TAG}
+    build: .
     container_name: openscout-face-engine
     restart: unless-stopped
     privileged: true
-    entrypoint: ["./face.py", "--endpoint", "http://openface-service:5000", "--threshold", "${FACE_THRESHOLD}", "${STORE}"]
+    entrypoint: ["openscout-face-engine", "--endpoint", "http://openface-service:5000", "--threshold", "${FACE_THRESHOLD}", "${STORE}"]
     #to use MS Face Cognitive Service, make this the entrypoint instead and use the ms-face-server container...
-    #entrypoint: ["./face.py", "--msface", "--endpoint", "http://ms-face-service:5000","--apikey", "${API_KEY}", "--threshold", "${FACE_THRESHOLD}"]
+    #entrypoint: ["openscout-face-engine", "--msface", "--endpoint", "http://ms-face-service:5000","--apikey", "${API_KEY}", "--threshold", "${FACE_THRESHOLD}"]
     volumes:
-      - ./openscout-vol:/openscout/server/images/
-      - training-vol:/openscout/server/training/
+      - ./openscout-vol:/openscout-server/images/
+      - training-vol:/openscout-server/training/
     depends_on:
       - gabriel-server
       - openface-service
@@ -48,16 +53,22 @@ services:
       - WEBSERVER=${WEBSERVER_URL}:${HTTP_PORT}
 
   object-engine:
-    image: cmusatyalab/openscout:${OPENSCOUT_TAG}
+    #image: cmusatyalab/openscout:${OPENSCOUT_TAG}
+    build: .
     container_name: openscout-object-engine
     restart: unless-stopped
     privileged: true
-    entrypoint: ["./obj.py", "--model", "${DNN}", "--threshold", "${OBJ_THRESHOLD}", "--exclude", "${EXCLUSIONS}", "${STORE}"]
-    # for NVIDIA GPUs
-    # gpus: all     # not yet supported by docker-compose
-    runtime: nvidia
+    entrypoint: ["openscout-object-engine", "--model", "${DNN}", "--threshold", "${OBJ_THRESHOLD}", "--exclude", "${EXCLUSIONS}", "${STORE}"]
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
     volumes:
-      - ./openscout-vol:/openscout/server/images/
+      - ./models:/openscout-server/models/
+      - ./openscout-vol:/openscout-server/images/
     depends_on:
       - gabriel-server
     networks:
@@ -76,9 +87,9 @@ services:
       - "5000:5000"
     restart: unless-stopped
     privileged: true
-    entrypoint: ["python", "/root/openface-rest.py", "/openscout/server/training/"]
+    entrypoint: ["python", "/root/openface-rest.py", "/openscout-server/training/"]
     volumes:
-      - training-vol:/openscout/server/training/
+      - training-vol:/openscout-server/training/
     networks:
       - openscout-net
 

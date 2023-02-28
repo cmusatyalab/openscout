@@ -1,7 +1,7 @@
 filebeat.inputs:
   - type: log
     paths:
-      - /openscout/server/openscout*.log
+      - /openscout-server/openscout*.log
 output.logstash:
   hosts: ["logstash:5044"]
 setup.kibana:
