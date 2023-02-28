@@ -109,10 +109,11 @@ services:
   #     - Billing=${BILLING_ENDPOINT}
   #     - ApiKey=${API_KEY}
   elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch-oss:${ELK_VERSION}-amd64
+    image: docker.elastic.co/elasticsearch/elasticsearch:${ELK_VERSION}
     container_name: elasticsearch
     environment:
       - discovery.type=single-node
+      - xpack.security.enabled=false
     ports:
       - 9200:9200
     restart: unless-stopped
@@ -120,7 +121,7 @@ services:
     networks:
       - elk
   kibana:
-    image: docker.elastic.co/kibana/kibana-oss:${ELK_VERSION}
+    image: docker.elastic.co/kibana/kibana:${ELK_VERSION}
     container_name: kibana
     ports:
       - 5601:5601
@@ -131,7 +132,7 @@ services:
     depends_on:
       - elasticsearch
   logstash:
-    image: docker.elastic.co/logstash/logstash-oss:${ELK_VERSION}
+    image: docker.elastic.co/logstash/logstash:${ELK_VERSION}
     container_name: logstash
     ports:
       - 5044:5044
