@@ -117,8 +117,8 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
                     "Sticking with previous model."
                 )
             else:
-                self.detector = PytorchPredictor(extras.detection_model, self.threshold)
-                self.model = extras.detection_model
+                self.detector = PytorchPredictor(extras.model, self.threshold)
+                self.model = extras.model
         self.t0 = time.time()
         results, image_np = self.process_image(input_frame.payloads[0])
         timestamp_millis = int(time.time() * 1000)
