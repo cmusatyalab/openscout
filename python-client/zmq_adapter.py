@@ -20,7 +20,7 @@ from gabriel_protocol import gabriel_pb2
 from gabriel_client.websocket_client import ProducerWrapper
 import logging
 import zmq
-import openscout_pb2
+import cnc_pb2
 import uuid
 
 logger = logging.getLogger(__name__)
@@ -34,7 +34,7 @@ class ZmqAdapter:
         parameter
         '''
         self.location = {}
-        self.model = 'coco'
+        self.model = 'robomaster'
         self.client_id = str(uuid.uuid4())
         self._preprocess = preprocess
         self._source_name = source_name
@@ -57,13 +57,17 @@ class ZmqAdapter:
         return A.reshape(md['shape'])
 
     def produce_extras(self):
-        extras = openscout_pb2.Extras()
-        extras.client_id = self.client_id
+        extras = cnc_pb2.Extras()
+        extras.drone_id = self.client_id
         extras.location.latitude = self.location['latitude']
         extras.location.longitude = self.location['longitude']
-        extras.model = self.model
-        logger.debug(f"Model: {self.model}")
-        logger.debug(f"Lat: {self.location['latitude']} Lon: {self.location['longitude']}")
+        extras.location.altitude = self.location['altitude']
+        extras.detection_model = self.model
+        extras.status.gimbal_pitch = self.gimbal_pitch
+        extras.status.bearing = self.heading
+        logger.info(f"Model: {self.model}")
+        logger.info(f"Lat: {self.location['latitude']} Lon: {self.location['longitude']} Alt: {self.location['altitude']}")
+        logger.info(f"Bearing: {self.heading} Gimbal Pitch: {self.gimbal_pitch}")
         return extras
 
     def get_producer_wrappers(self):

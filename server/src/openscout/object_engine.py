@@ -24,13 +24,15 @@ import time
 
 import cv2
 import importlib_resources
+import json
 import numpy as np
 import torch
 from gabriel_protocol import gabriel_pb2
 from gabriel_server import cognitive_engine
 from pathlib import Path
 from PIL import Image, ImageDraw
-from .protocol import openscout_pb2
+from .protocol import cnc_pb2
+from scipy.spatial.transform import Rotation as R
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -69,6 +71,12 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
         self.threshold = args.threshold
         self.store_detections = args.store
         self.model = args.model
+        self.drone_type = args.drone
+        #timing vars
+        self.count = 0
+        self.lasttime = time.time()
+        self.lastcount = 0
+        self.lastprint = self.lasttime
 
         if args.exclude:
             self.exclusions = list(
@@ -96,6 +104,54 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
                 logger.info("Images directory already exists.")
             logger.info(f"Storing detection images at {self.storage_path}")
 
+    def find_intersection(self, target_dir, target_insct):
+        plane_pt = np.array([0, 0, 0])
+        plane_norm = np.array([0, 0, 1])
+
+        if (plane_norm.dot(target_dir).all() == 0):
+            return None
+
+        t = (plane_norm.dot(plane_pt) - plane_norm.dot(target_insct)) / plane_norm.dot(target_dir)
+        return target_insct + (t * target_dir)
+
+    def estimateGPS(self, drone_lat, drone_lon, camera_pitch, drone_yaw, drone_elev, target_x_pix, target_y_pix):
+        # Establish parameters.
+        EARTH_RADIUS = 6378137.0
+        north_vec = np.array([0, 1, 0]) # Create a vector pointing due north.
+        if self.drone_type is 'anafi':
+            HFOV = 69 # Horizontal FOV An.
+            VFOV = 43 # Vertical FOV.
+        elif self.dron_type is  'usa':
+            HFOV = 69 # Horizontal FOV An.
+            VFOV = 43 # Vertical FOV.
+        else:
+            raise "Unsupported drone type!"
+        pixel_center = (640/2, 480/2) # Center pixel location of the camera.
+
+        # Perform rotations.
+        logger.info("Pitch: {0}, Yaw: {1}, Elev: {2}".format(camera_pitch, drone_yaw, drone_elev))
+
+        r = R.from_euler('ZYX', [drone_yaw, 0, camera_pitch], degrees=True) # Rotate the due north vector to camera center.
+        camera_center = r.as_matrix().dot(north_vec)
+
+        logger.info("Camera centered at: ({0}, {1}, {2})".format(camera_center[0], camera_center[1], camera_center[2]))
+
+        target_yaw_angle = ((target_x_pix - pixel_center[0]) / pixel_center[0]) * (HFOV / 2)
+        target_pitch_angle = ((target_y_pix - pixel_center[1]) / pixel_center[1]) * (VFOV / 2)
+        r = R.from_euler('ZYX', [drone_yaw + target_yaw_angle, 0, camera_pitch + target_pitch_angle], degrees=True) # Rotate the camera center vector to target center.
+        target_dir = r.as_matrix().dot(north_vec)
+        logger.info("Target yaw: {0}, Target pitch: {1}".format(target_yaw_angle, target_pitch_angle))
+        logger.info("Target centered at: ({0}, {1}, {2})".format(target_dir[0], target_dir[1], target_dir[2]))
+
+        # Finding the intersection with the plane.
+        insct = self.find_intersection(target_dir, np.array([0, 0, drone_elev]))
+        logger.info("Intersection with ground plane: ({0}, {1}, {2})".format(insct[0], insct[1], insct[2]))
+
+        est_lat = drone_lat + (180 / np.pi) * (insct[1] / EARTH_RADIUS)
+        est_lon = drone_lon + (180 / np.pi) * (insct[0] / EARTH_RADIUS) / np.cos(drone_lat)
+        logger.info("Estimated GPS location: ({0}, {1})".format(est_lat, est_lon))
+        return est_lat, est_lon
+
     def handle(self, input_frame):
         if input_frame.payload_type == gabriel_pb2.PayloadType.TEXT:
             # if the payload is TEXT, say from a CNC client, we ignore
@@ -108,12 +164,12 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
             result_wrapper.results.append(result)
             return result_wrapper
 
-        extras = cognitive_engine.unpack_extras(openscout_pb2.Extras, input_frame)
+        extras = cognitive_engine.unpack_extras(cnc_pb2.Extras, input_frame)
 
-        if extras.model != "" and extras.model != self.model:
-            if not os.path.exists("./models/" + extras.model):
+        if extras.detection_model != "" and extras.detection_model != self.model:
+            if not os.path.exists("./models/" + extras.detection_model):
                 logger.error(
-                    f"Model named {extras.model} not found. "
+                    f"Model named {extras.detection_model} not found. "
                     "Sticking with previous model."
                 )
             else:
@@ -150,14 +206,19 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
                     if self.exclusions is None or classes[i] not in self.exclusions:
                         detections_above_threshold = True
                         logger.info(f"Detected : {names[i]} - Score: {scores[i]:.3f}")
-                        r.append(f"Detected {names[i]} ({scores[i]:.3f})")
+                        #[y_min, x_min, y_max, x_max]
+                        box = [df['ymin'][i], df['xmin'][i], df['ymax'][i], df['xmax'][i]]
+                        target_x_pix = int(((box[3] - box[1]) / 2.0) + box[1]) * image_np.shape[1]
+                        target_y_pix = int(((box[2] - box[0]) / 2.0) + box[0]) * image_np.shape[0]
+                        lat, lon = self.estimateGPS(extras.location.latitude, extras.location.longitude, extras.status.gimbal_pitch, extras.status.bearing*(180 /np.pi), extras.location.altitude, target_x_pix, target_y_pix )
+                        r.append({'id': i, 'class': names[i], 'score': scores[i], 'lat': lat, 'lon': lon, 'box': box})
                         if self.store_detections:
                             detection_log.info(
                                 "{},{},{},{},{},{:.3f},{}".format(
                                     timestamp_millis,
-                                    extras.client_id,
-                                    extras.location.latitude,
-                                    extras.location.longitude,
+                                    extras.drone_id,
+                                    lat,
+                                    lon,
                                     names[i],
                                     scores[i],
                                     os.environ["WEBSERVER"] + "/detected/" + filename,
@@ -167,16 +228,17 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
                             detection_log.info(
                                 "{},{},{},{},{},{:.3f},".format(
                                     timestamp_millis,
-                                    extras.client_id,
-                                    extras.location.latitude,
-                                    extras.location.longitude,
+                                    extras.drone_id,
+                                    lat,
+                                    lon,
                                     names[i],
                                     scores[i],
                                 )
                             )
 
             if detections_above_threshold:
-                result.payload = ','.join(r).encode(encoding="utf-8")
+                logger.info(json.dumps(r,sort_keys=True, indent=4))
+                result.payload = json.dumps(r).encode(encoding="utf-8")
                 result_wrapper.results.append(result)
 
                 if self.store_detections:
@@ -197,14 +259,30 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
                         logger.exception("IndexError while getting bounding boxes")
                         return result_wrapper
 
+        self.count += 1
+        if self.t1 - self.lastprint > 5:
+            logger.info("inference time {0:.1f} ms, ".format((self.t1 - self.t0) * 1000))
+            logger.info("wait {0:.1f} ms, ".format((self.t0 - self.lasttime) * 1000))
+            logger.info("fps {0:.2f}".format(1.0 / (self.t1 - self.lasttime)))
+            logger.info(
+                "avg fps: {0:.2f}".format(
+                    (self.count - self.lastcount) / (self.t1 - self.lastprint)
+                )
+            )
+            self.lastcount = self.count
+            self.lastprint = self.t1
+
+        self.lasttime = self.t1
         return result_wrapper
 
     def process_image(self, image):
+        self.t0 = time.time()
         np_data = np.fromstring(image, dtype=np.uint8)
         img = cv2.imdecode(np_data, cv2.IMREAD_COLOR)
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
         output_dict = self.inference(img)
+        self.t1 = time.time()
         return output_dict, img
 
     def inference(self, img):

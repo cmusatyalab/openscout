@@ -86,6 +86,13 @@ def main():
         ),
     )
 
+    parser.add_argument(
+        "-d",
+        "--drone",
+        default='anafi',
+        help="Drone model ([anafi,usa]).  Used to define HFOV and VFOV for camera."
+    )
+
     args, _ = parser.parse_known_args()
 
     def object_engine_setup():
