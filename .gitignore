@@ -10,3 +10,4 @@ android-client/build/
 server/model/
 **/app/build/
 **/app/src/main/assets/
+/bin/

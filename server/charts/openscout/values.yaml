@@ -1,0 +1,102 @@
+# Default values for openscout service.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+namespace: openscout
+
+deployment:
+  replicas: 1
+  port: 9099
+  protocol: TCP
+  elkversion: 7.9.3
+  arch: amd64
+
+images:
+  # Globals
+  openscout:
+     name: openscout
+     repository: cmusatyalab/openscout
+     tag: latest
+     pullPolicy: IfNotPresent
+     
+  # For each server
+  gabrielserver:
+     name: gabriel-server
+     command: ["./main.py"]
+     
+  objectengine:
+     name: openscout-object-engine
+     command: "./obj.py"
+     
+  httpd:   
+     name: http-server
+     repository: httpd
+     tag: 2.4
+     port: 80
+     url: http://128.2.208.222
+     nodePort: 30082
+     
+  elasticsearch:
+     name: elasticsearch
+     repository: docker.elastic.co/elasticsearch/elasticsearch-oss
+     # Tag is elkversion-arch from deployment
+     discoverytype: single-node
+     
+  kibana:
+    name: kibana
+    repository: docker.elastic.co/kibana/kibana-oss
+    # Tag is elkversion
+    
+  logstash:
+    name: logstash
+    repository: docker.elastic.co/logstash/logstash-oss
+    # Tag is elkversion
+
+# For each volume mount
+volumes:
+  pipeline:
+    hostPath: /opt/openscout/elk/pipeline
+    mountPath: /usr/share/logstash/pipeline
+  objectengine:
+    hostPath: /opt/openscout/openscout-vol
+    mountPath: /openscout/server/images    
+
+# For each service
+gabrielservice:
+  name: gabriel-server
+  type: ClusterIP
+  port: 5555
+  targetPort: 5555
+
+openscoutservice:
+  name: openscout-service
+  selector: gabriel-server
+  type: ClusterIP
+  port: 9099
+  targetPort: 9099
+  nodePort: 30099
+  
+httpdservice:   
+  name: httpd
+  type: NodePort
+  port: 80
+  nodePort: 30082
+  
+elasticsearchservice:
+  name: elasticsearch
+  type: ClusterIP
+  port: 9200
+  targetPort: 9200
+  
+kibanaservice:
+  name: kibana
+  type: ClusterIP
+  port: 5601
+  targetPort: 5601
+  
+logstashservice:
+  name: logstash
+  type: ClusterIP
+  port: 5044
+  targetPort: 5044
+  

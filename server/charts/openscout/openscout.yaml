@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ template "openscout.fullname" . }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ template "openscout.name" . }}
+    chart: {{ template "openscout.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  replicas: {{ .Values.deployment.replicas }}
+  selector:
+    matchLabels:
+      app: {{ template "openscout.name" . }}
+      release: {{ .Release.Name }}
+  template:
+    metadata:
+      namespace: {{ .Values.namespace }}
+      labels:
+        app: {{ template "openscout.name" . }}
+        release: {{ .Release.Name }}
+    spec:
+      containers:
+        - name: {{ .Values.images.openscout.name }}
+          image: "{{ .Values.images.openscout.repository }}:{{ .Values.images.openscout.tag }}"
+          imagePullPolicy: {{ .Values.images.openscout.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.deployment.port }}
+              hostPort: {{ .Values.deployment.port }}
+              protocol: {{ .Values.deployment.protocol }}
+          volumeMounts:
+            - name: shared-data
+              mountPath: /usr/share/openscout
+      volumes:
+        - name: shared-data
+          emptyDir: {}
