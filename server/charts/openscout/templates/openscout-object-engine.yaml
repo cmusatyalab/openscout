@@ -39,7 +39,9 @@ spec:
             - name: shared-data
               mountPath: /usr/share/openscout
             - name: objectengine
-              mountPath: {{ .Values.volumes.objectengine.mountPath }}       
+              mountPath: {{ .Values.volumes.objectengine.mountPath }}
+            - name: models
+              mountPath: {{ .Values.volumes.models.mountPath }}    
           env:
             - name: "WEBSERVER"
               value: "{{.Values.images.httpd.url}}:{{.Values.images.httpd.nodePort}}"
@@ -49,3 +51,7 @@ spec:
         - name: objectengine
           hostPath:
             path: {{ .Values.volumes.objectengine.hostPath }}
+        - name: models
+          hostPath:
+            path: {{ .Values.volumes.models.hostPath }}
+

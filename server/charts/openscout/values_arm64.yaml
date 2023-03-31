@@ -61,7 +61,10 @@ volumes:
   objectengine:
     hostPath: /opt/openscout/openscout-vol
     mountPath: /openscout/server/images
-
+  models:
+    hostPath: /opt/openscout/models
+    mountPath: /openscout-server/models
+    
 # For each service
 gabrielservice:
   name: gabriel-server
