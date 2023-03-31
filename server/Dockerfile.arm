@@ -1,0 +1,43 @@
+FROM nvcr.io/nvidia/pytorch:22.04-py3
+LABEL maintainer="Satyalab, satya-group@lists.andrew.cmu.edu"
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONUNBUFFERED=1 \
+    # prevents python creating .pyc files
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONHASHSEED=random \
+    PIP_NO_CACHE_DIR=off \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_DEFAULT_TIMEOUT=100 \
+    POETRY_NO_INTERACTION=1 \
+    POETRY_VIRTUALENVS_CREATE=0
+
+RUN apt-get update && apt-get install -y \
+    git \
+    libgl1 \
+    wget \
+ && wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | apt-key add - \
+ && echo "deb https://artifacts.elastic.co/packages/oss-7.x/apt stable main" | tee -a /etc/apt/sources.list.d/elastic-7.x.list \
+ && apt-get update && apt-get install -y \
+    filebeat \
+ && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+RUN --mount=type=cache,target=/root/.cache \
+    python -m pip install --upgrade pip keyrings.alt \
+ && python -m pip install poetry
+
+# You can speed up build slightly by reducing build context with
+#     git archive --format=tgz HEAD | docker build -t openscout -
+WORKDIR /openscout-server
+
+COPY . /openscout-server/
+
+RUN --mount=type=cache,target=/root/.cache \
+    poetry build --no-cache --format=wheel \
+ && python -m pip install dist/openscout_server-*.whl \
+ && cp elk/filebeat.yml /etc/filebeat/filebeat.yml \
+ && chmod go-w /etc/filebeat/filebeat.yml \
+ && rm -r dist
+
+EXPOSE 5555 9099
+ENTRYPOINT ["./entrypoint.sh"]
