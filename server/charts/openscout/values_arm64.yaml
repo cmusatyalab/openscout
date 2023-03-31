@@ -8,7 +8,7 @@ deployment:
   replicas: 1
   port: 9099
   protocol: TCP
-  elkversion: 7.13.3
+  elkversion: 8.6.2
   arch: arm64
 
 images:
@@ -22,11 +22,12 @@ images:
   # For each server
   gabrielserver:
      name: gabriel-server
-     command: ["./main.py"]
+     command: ["openscout"]
      
   objectengine:
      name: openscout-object-engine
-     command: "./obj.py"
+     command:  ["openscout-object-engine"]
+     args:  ["--model","coco", "--threshold","0.7","--exclude", "1", ""]
      
   httpd:   
      name: http-server
@@ -49,7 +50,7 @@ images:
     
   logstash:
     name: logstash
-    repository: docker.elastic.co/logstash/logstash-oss
+    repository: docker.elastic.co/logstash/logstash
     # Tag is elkversion
 
 # For each volume mount

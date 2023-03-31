@@ -22,11 +22,11 @@ images:
   # For each server
   gabrielserver:
      name: gabriel-server
-     command: ["./main.py"]
+     command: ["openscout"]
      
   objectengine:
      name: openscout-object-engine
-     command: "./obj.py"
+     command: ["openscout-object-engine"]
      
   httpd:   
      name: http-server

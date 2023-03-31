@@ -25,9 +25,9 @@ spec:
         - name: {{ .Values.images.objectengine.name }}
           image: "{{ .Values.images.openscout.repository }}:{{ .Values.images.openscout.tag }}"
           imagePullPolicy: {{ .Values.images.openscout.pullPolicy }}
-          # command: {{ .Values.images.objectengine.command }}
-          # args: {{ .Values.images.objectengine.args }}
-          command: ["./obj.py", "--model", "coco", "--threshold", "0.7", "--exclude", "1", ""]
+          command: {{ .Values.images.objectengine.command }}
+          args: {{ .Values.images.objectengine.args }}
+          # command: ["openscout-object-engine", "--model", "coco", "--threshold", "0.7", "--exclude", "1", ""]
           #ports:
           #  - containerPort: {{ .Values.images.objectengine.port }}
           #    hostPort: {{ .Values.images.objectengine.nodePort }}
