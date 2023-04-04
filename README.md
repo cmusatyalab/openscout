@@ -2,7 +2,7 @@
 
 OpenScout utilizes Gabriel, a platform originally designed for wearable cognitive assistance applications, to stream image data to the backend server which runs several cognitive engines to evaluate each image. Currently we support object detection via Tensorflow and face recognition via OpenFace. We also support Microsoft Face Cognitive Service if you have an Azure account and have setup the cognitive service endpoint.
 
-Copyright &copy; 2020
+Copyright &copy; 2020-2023
 Carnegie Mellon University
 
 This is a developing project.
@@ -24,7 +24,7 @@ Project | Modified | License
 
 ## Prerequisites
 
-OpenScout uses Tensorflow for object detection and OpenFace for face detection/recognition. It has been tested on __Ubuntu 16.04 LTS (Xenial)__ and __Ubuntu 18.04 LTS (Bionic)__. The object detection cognitive engine requires an nVidia GPU.
+OpenScout uses pyTorch (YOLOv5) for object detection and OpenFace for face detection/recognition. It has been tested on __Ubuntu 20.04 LTS (focal)__ and __Ubuntu 18.04 LTS (bionic)__. The object detection cognitive engine requires an nVidia GPU.
 
 If you wish to use [Microsoft's Face Cognitive Service](https://docs.microsoft.com/en-us/azure/cognitive-services/face/face-how-to-install-containers) for face recognition, you will need to have an Azure account and setup the endpoint and API keys as described in the the above link. You will also need to reconfigure the docker-compose.yaml file. See the Launching Server section for more details.
 
@@ -32,7 +32,7 @@ OpenScout has an Android client that is available on the [Google PlayStore](http
 
 ## Server Installation using Docker
 
-The quickest way to set up an OpenScout server is to download and run our pre-built Docker container.  This build supports execution on NVIDIA GPUs, Intel integrated GPUs, and execution on the CPU. All of the following steps must be executed as root. We tested these steps using Docker 19.03.
+The quickest way to set up an OpenScout server is to download and run our pre-built Docker container.  All of the following steps must be executed as root. We tested these steps using Docker 19.03.
 
 ### 1. Install Docker and docker-compose
 
@@ -101,7 +101,7 @@ cd ~/openscout/server
 docker-compose up -d
 ```
 
-If you wish to use the Microsoft Face Cognitive Service instead of OpenFace, the docker-compose.yaml file will need to be [modified](https://github.com/cmusatyalab/openscout/blob/7bda45e3ab494042fe3909f8f8620ac844d1ce79/server/docker-compose.yml#L69) to comment out the openface-service and instead use ms-face-service.
+If you wish to use the Microsoft Face Cognitive Service instead of OpenFace, the docker-compose.yaml file will need to be modified to comment out the openface-service and instead use ms-face-service.
 
 ### 6. Create Elasticsearch index
 
@@ -144,7 +144,7 @@ __NOTE: This should be done prior to connecting any clients. Once the first clie
 
 ### 7. Tearing down
 
-Hitting CTRL-C while `docker-compose up` is running will stop the containers. However to explicitly destroy them, you can use `docker-compsoe down`. This will also destroy the networks, however the training volume (and any images that were added to the training set) will persist until explicitly deleted with `docker volume rm`.
+Hitting CTRL-C while `docker-compose up` is running will stop the containers. However to explicitly destroy them, you can use `docker-compose down`. This will also destroy the networks, however the training volume (and any images that were added to the training set) will persist until explicitly deleted with `docker volume rm`.
 
 ## Android Client Installation
 
@@ -183,7 +183,7 @@ The add person button can be clicked to train a person for facial recognition on
 
 ## Object Detection
 
-For object detection, we have prepackaged the [ssd_resnet_50_fpn_coco](http://download.tensorflow.org/models/object_detection/ssd_mobilenet_v1_fpn_shared_box_predictor_640x640_coco14_sync_2018_07_03.tar.gz) DNN from the [Tensorflow Detection Model Zoo](https://github.com/tensorflow/models/blob/master/research/object_detection/g3doc/tf1_detection_zoo.md#coco-trained-models). The COCO dataset has ~100 objects that it will detect. The dataset and the objects in it can be explored [here](https://cocodataset.org/#explore).
+For object detection, you will need to download a pre-trained model or train your own. See [models/README](models/README) for more details. The COCO dataset has ~100 objects that it will detect. The dataset and the objects in it can be explored [here](https://cocodataset.org/#explore).
 
 OpenScout's object detection cognitive engine also supports Tensorflow DNNs exported out of [OpenTPOD](https://github.com/cmusatyalab/opentpod).
 
