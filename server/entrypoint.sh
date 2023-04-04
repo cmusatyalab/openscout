@@ -2,4 +2,5 @@
 args=$*
 ./main.py $args &
 ./face.py $args &
-./obj.py $args
+./obj.py $args &
+./depth.py $args
