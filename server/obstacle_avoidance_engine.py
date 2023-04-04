@@ -114,6 +114,7 @@ class ObstacleAvoidanceEngine(cognitive_engine.Engine):
 
         if self.store_detections:
             filename = str(timestamp_millis) + ".jpg"
+            depth_img = Image.fromarray(depth_img)
             draw = ImageDraw.Draw(depth_img)
             draw.bitmap((0,0), self.watermark, fill=None)
             path = self.storage_path + "/detected/" + filename
@@ -171,10 +172,10 @@ class ObstacleAvoidanceEngine(cognitive_engine.Engine):
 
         depth_map = cv2.normalize(depth_map, None, 0, 1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_64F)
         depth_map = (depth_map*255).astype(np.uint8)
-        full_depth_map = cv2.applyColorMap(depth_map , cv2.COLORMAP_JET)
+        full_depth_map = cv2.applyColorMap(depth_map , cv2.COLORMAP_OCEAN)
         
         
-        cv2.rectangle(img, (scrapX,scrapY), (img.shape[1]-scrapX, img.shape[0]-scrapY), (255,255,0), thickness=1)
+        cv2.rectangle(full_depth_map, (scrapX,scrapY), (full_depth_map.shape[1]-scrapX, full_depth_map.shape[0]-scrapY), (255,255,0), thickness=1)
         depth_map[depth_map >= self.threshold] = 0
         depth_map[depth_map != 0] = 255
         depth_map = depth_map[scrapY : frame_height - scrapY, scrapX : frame_width - scrapX]
@@ -189,8 +190,8 @@ class ObstacleAvoidanceEngine(cognitive_engine.Engine):
             M = cv2.moments(c)
             cX = int(M["m10"] / M["m00"])
             cY = int(M["m01"] / M["m00"])
-            cv2.circle(img, (scrapX + cX, scrapY + cY), 5, (0, 255, 0), -1)
-            cv2.putText(img, "safe", (scrapX + cX, scrapY + cY - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+            cv2.circle(full_depth_map, (scrapX + cX, scrapY + cY), 5, (0, 255, 0), -1)
+            cv2.putText(full_depth_map, "safe", (scrapX + cX, scrapY + cY - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
         except:
             pass
         
