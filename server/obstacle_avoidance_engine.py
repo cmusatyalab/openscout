@@ -27,6 +27,7 @@ from gabriel_server import cognitive_engine
 from gabriel_protocol import gabriel_pb2
 from cnc_protocol import cnc_pb2
 from PIL import Image, ImageDraw
+import json
 import torch
 
 logger = logging.getLogger(__name__)
@@ -105,9 +106,10 @@ class ObstacleAvoidanceEngine(cognitive_engine.Engine):
 
         result = gabriel_pb2.ResultWrapper.Result()
         result.payload_type = gabriel_pb2.PayloadType.TEXT
-
+        r = []
+        r.append({'vector': vector })
         logger.info(f"Vector returned by obstacle avoidance algorithm: {vector}")
-        result.payload = vector.encode(encoding="utf-8")
+        result.payload = json.dumps(r).encode(encoding="utf-8")
         result_wrapper.results.append(result)
 
         if self.store_detections:
@@ -168,8 +170,8 @@ class ObstacleAvoidanceEngine(cognitive_engine.Engine):
         depth_map = prediction.cpu().numpy()
 
         depth_map = cv2.normalize(depth_map, None, 0, 1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_64F)
-        full_depth_map = cv2.applyColorMap(depth_map , cv2.COLORMAP_JET)
         depth_map = (depth_map*255).astype(np.uint8)
+        full_depth_map = cv2.applyColorMap(depth_map , cv2.COLORMAP_JET)
         
         
         cv2.rectangle(img, (scrapX,scrapY), (img.shape[1]-scrapX, img.shape[0]-scrapY), (255,255,0), thickness=1)
