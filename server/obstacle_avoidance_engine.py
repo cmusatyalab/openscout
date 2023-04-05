@@ -152,6 +152,7 @@ class ObstacleAvoidanceEngine(cognitive_engine.Engine):
         """Allow timing engine to override this"""
         # Default resolutions of the frame are obtained.The default resolutions are system dependent.
         # We convert the resolutions from float to integer.
+        actuation_vector = 0
         frame_width = img.shape[1]
         frame_height = img.shape[0]
         scrapY, scrapX = frame_height//3, frame_width//3
