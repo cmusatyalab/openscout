@@ -192,9 +192,9 @@ class ObstacleAvoidanceEngine(cognitive_engine.Engine):
             cY = int(M["m01"] / M["m00"])
             cv2.circle(full_depth_map, (scrapX + cX, scrapY + cY), 5, (0, 255, 0), -1)
             cv2.putText(full_depth_map, "safe", (scrapX + cX, scrapY + cY - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+            actuation_vector = scrapX + cX - (full_depth_map.shape[1] / 2) + 1
         except:
             pass
         
-        actuation_vector = 0
         return actuation_vector, full_depth_map
 
