@@ -155,7 +155,7 @@ class ObstacleAvoidanceEngine(cognitive_engine.Engine):
         actuation_vector = 0
         frame_width = img.shape[1]
         frame_height = img.shape[0]
-        scrapY, scrapX = frame_height//3, frame_width//3
+        scrapY, scrapX = frame_height//3, frame_width//4
 
         input_batch = self.transform(img).to(self.device)
 
