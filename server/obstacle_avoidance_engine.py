@@ -53,9 +53,7 @@ class ObstacleAvoidanceEngine(cognitive_engine.Engine):
             self.watermark = Image.open(os.getcwd()+"/watermark.png")
             self.storage_path = os.getcwd()+"/images/"
             try:
-                os.mkdir(self.storage_path)
-                os.mkdir(self.storage_path+"/received")
-                os.mkdir(self.storage_path+"/detected")
+                os.makedirs(self.storage_path+"/moa")
             except FileExistsError:
                 logger.info("Images directory already exists.")
             logger.info("Storing detection images at {}".format(self.storage_path))
@@ -117,7 +115,9 @@ class ObstacleAvoidanceEngine(cognitive_engine.Engine):
             depth_img = Image.fromarray(depth_img)
             draw = ImageDraw.Draw(depth_img)
             draw.bitmap((0,0), self.watermark, fill=None)
-            path = self.storage_path + "/detected/" + filename
+            path = self.storage_path + "/moa/" + filename
+            depth_img.save(path, format="JPEG")
+            path = self.storage_path + "/moa/latest.jpg"
             depth_img.save(path, format="JPEG")
             logger.info("Stored image: {}".format(path))
 

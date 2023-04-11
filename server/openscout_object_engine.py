@@ -88,9 +88,8 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
             self.watermark = Image.open(os.getcwd()+"/watermark.png")
             self.storage_path = os.getcwd()+"/images/"
             try:
-                os.mkdir(self.storage_path)
-                os.mkdir(self.storage_path+"/received")
-                os.mkdir(self.storage_path+"/detected")
+                os.makedirs(self.storage_path+"/received")
+                os.makedirs(self.storage_path+"/detected")
             except FileExistsError:
                 logger.info("Images directory already exists.")
             logger.info("Storing detection images at {}".format(self.storage_path))
@@ -174,6 +173,8 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
         img = Image.fromarray(image_np)
         path = self.storage_path + "/received/" + filename
         img.save(path, format="JPEG")
+        path = self.storage_path + "/received/latest.jpg"
+        img.save(path, format="JPEG")
 
         if len(results.pred) > 0:
             df = results.pandas().xyxy[0] # pandas dataframe
@@ -217,6 +218,8 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
                         draw = ImageDraw.Draw(img)
                         draw.bitmap((0,0), self.watermark, fill=None)
                         path = self.storage_path + "/detected/" + filename
+                        img.save(path, format="JPEG")
+                        path = self.storage_path + "/detected/latest.jpg"
                         img.save(path, format="JPEG")
                         logger.info("Stored image: {}".format(path))
                     except IndexError as e:
