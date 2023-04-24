@@ -32,27 +32,28 @@ import torch
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
-valid_models = ['DPT_BEiT_L_512',
-'DPT_BEiT_L_384',
-'DPT_BEiT_384',
-'DPT_SwinV2_L_384',
-'DPT_SwinV2_B_384',
-'DPT_SwinV2_T_256',
-'DPT_Swin_L_384',
-'DPT_Next_ViT_L_384',
-'DPT_LeViT_224',
-'DPT_Large',
-'DPT_Hybrid',
-'MiDaS',
-'MiDaS_small']
 
 class ObstacleAvoidanceEngine(cognitive_engine.Engine):
     ENGINE_NAME = "obstacle-avoidance"
 
+
     def __init__(self, args):
         self.threshold = args.threshold # default should be 190
         self.store_detections = args.store
-        self.model = args.model # DPT_Large, DPT_Hybrid, MiDaS_small
+        self.model = args.model
+        self.valid_models = ['DPT_BEiT_L_512',
+                'DPT_BEiT_L_384',
+                'DPT_BEiT_384',
+                'DPT_SwinV2_L_384',
+                'DPT_SwinV2_B_384',
+                'DPT_SwinV2_T_256',
+                'DPT_Swin_L_384',
+                'DPT_Next_ViT_L_384',
+                'DPT_LeViT_224',
+                'DPT_Large',
+                'DPT_Hybrid',
+                'MiDaS',
+                'MiDaS_small']
         #timing vars
         self.count = 0
         self.lasttime = time.time()
@@ -81,10 +82,18 @@ class ObstacleAvoidanceEngine(cognitive_engine.Engine):
 
         midas_transforms = torch.hub.load("intel-isl/MiDaS", "transforms")
 
-        if self.model == "MiDaS_small" or self.model == "MiDaS":
+        if self.model == "MiDaS_small":
             self.transform = midas_transforms.small_transform
-        elif self.model =="DPT_SwinV2_L_384":
+        elif self.model == 'DPT_SwinV2_L_384' or 'DPT_SwinV2_B_384' or 'DPT_Swin_L_384':
             self.transform = midas_transforms.swin384_transform
+        elif self.model == "MiDaS":
+            self.transform = midas_transforms.default_transform
+        elif self.model == "DPT_SwinV2_T_256":
+            self.transform = midas_transforms.swin256_transform
+        elif self.model == "DPT_LeViT_224":
+            self.transform = midas_transforms.levit_transform
+        elif self.model == "DPT_BEiT_L_512":
+            self.transform = midas_transforms.beit512_transform
         else:
             self.transform = midas_transforms.dpt_transform
         logger.info("Depth predictor initialized with the following model: {}".format(model))
@@ -105,7 +114,7 @@ class ObstacleAvoidanceEngine(cognitive_engine.Engine):
         extras = cognitive_engine.unpack_extras(cnc_pb2.Extras, input_frame)
 
         if extras.detection_model != '' and extras.detection_model != self.model:
-            if extras.detection_model not in valid_models:
+            if extras.detection_model not in self.valid_models:
                 logger.error(f"Invalid MiDaS model {extras.detection_model}.")
             else:
                 self.load_midas(extras.detection_model)
