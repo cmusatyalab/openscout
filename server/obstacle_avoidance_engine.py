@@ -83,6 +83,8 @@ class ObstacleAvoidanceEngine(cognitive_engine.Engine):
 
         if self.model == "MiDaS_small" or self.model == "MiDaS":
             self.transform = midas_transforms.small_transform
+        elif self.model =="DPT_SwinV2_L_384":
+            self.transform = midas_transforms.swin384_transform
         else:
             self.transform = midas_transforms.dpt_transform
         logger.info("Depth predictor initialized with the following model: {}".format(model))
