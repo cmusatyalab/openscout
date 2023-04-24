@@ -32,7 +32,19 @@ import torch
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
-
+valid_models = ['DPT_BEiT_L_512',
+'DPT_BEiT_L_384',
+'DPT_BEiT_384',
+'DPT_SwinV2_L_384',
+'DPT_SwinV2_B_384',
+'DPT_SwinV2_T_256',
+'DPT_Swin_L_384',
+'DPT_Next_ViT_L_384',
+'DPT_LeViT_224',
+'DPT_Large',
+'DPT_Hybrid',
+'MiDaS',
+'MiDaS_small']
 
 class ObstacleAvoidanceEngine(cognitive_engine.Engine):
     ENGINE_NAME = "obstacle-avoidance"
@@ -69,10 +81,10 @@ class ObstacleAvoidanceEngine(cognitive_engine.Engine):
 
         midas_transforms = torch.hub.load("intel-isl/MiDaS", "transforms")
 
-        if self.model == "DPT_Large" or self.model == "DPT_Hybrid":
-            self.transform = midas_transforms.dpt_transform
-        else:
+        if self.model == "MiDaS_small" or self.model == "MiDaS":
             self.transform = midas_transforms.small_transform
+        else:
+            self.transform = midas_transforms.dpt_transform
         logger.info("Depth predictor initialized with the following model: {}".format(model))
         logger.info("Depth Threshold: {}".format(self.threshold))
 
@@ -91,8 +103,8 @@ class ObstacleAvoidanceEngine(cognitive_engine.Engine):
         extras = cognitive_engine.unpack_extras(cnc_pb2.Extras, input_frame)
 
         if extras.detection_model != '' and extras.detection_model != self.model:
-            if extras.detection_model not in ['DPT_Large','DPT_Hybrid','MiDaS_small']:
-                logger.error(f"Invalid MiDaS model {extras.detection_model}. Try 'DPT_Large', 'DPT_Hybrid', or 'MiDaS_small'.")
+            if extras.detection_model not in valid_models:
+                logger.error(f"Invalid MiDaS model {extras.detection_model}.")
             else:
                 self.load_midas(extras.detection_model)
         self.t0 = time.time()
