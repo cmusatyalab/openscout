@@ -43,7 +43,6 @@ class ObstacleAvoidanceEngine(cognitive_engine.Engine):
         self.model = args.model
         self.valid_models = ['DPT_BEiT_L_512',
                 'DPT_BEiT_L_384',
-                'DPT_BEiT_384',
                 'DPT_SwinV2_L_384',
                 'DPT_SwinV2_B_384',
                 'DPT_SwinV2_T_256',
@@ -178,7 +177,7 @@ class ObstacleAvoidanceEngine(cognitive_engine.Engine):
         actuation_vector = 0
         frame_width = img.shape[1]
         frame_height = img.shape[0]
-        scrapY, scrapX = frame_height//3, frame_width//4
+        scrapY, scrapX = frame_height//3, 0
 
         input_batch = self.transform(img).to(self.device)
 
