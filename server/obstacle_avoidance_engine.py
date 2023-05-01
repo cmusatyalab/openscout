@@ -60,6 +60,7 @@ class ObstacleAvoidanceEngine(cognitive_engine.Engine):
         self.lastprint = self.lasttime
         self.faux = args.faux
         if self.faux:
+            self.storage_path = os.getcwd()+"/images/"
             logger.info("Generating faux actutations from  {}".format(self.storage_path + "/actuations.txt"))
             self.actuations_fd = open(self.storage_path + "/actuations.txt", mode='r')
 
