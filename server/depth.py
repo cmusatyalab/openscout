@@ -58,6 +58,10 @@ def main():
         "-src", "--source",  default=SOURCE, help="Source for engine to register with."
     )
 
+    parser.add_argument(
+        "-f", "--faux",  action="store_true", default=False, help="Generate faux vectors using the file specfied instead of results from MiDaS."
+    )
+
     args, _ = parser.parse_known_args()
 
     def engine_setup():

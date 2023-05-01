@@ -58,6 +58,10 @@ class ObstacleAvoidanceEngine(cognitive_engine.Engine):
         self.lasttime = time.time()
         self.lastcount = 0
         self.lastprint = self.lasttime
+        self.faux = args.faux
+        if self.faux:
+            logger.info("Generating faux actutations from  {}".format(self.storage_path + "/actuations.txt"))
+            self.actuations_fd = open(self.storage_path + "/actuations.txt", mode='r')
 
         self.load_midas(self.model)
 
@@ -218,6 +222,14 @@ class ObstacleAvoidanceEngine(cognitive_engine.Engine):
             actuation_vector = scrapX + cX - (full_depth_map.shape[1] / 2) + 1
         except:
             pass
+
+        if self.faux:
+            actuation_vector = self.actuations_fd.readline()
+            #if we have reached the end of the fd, seek back to the top
+            if actuation_vector == '':
+                self.actuations_fd.seek(0)
+                actuation_vector = self.actuations_fd.readline()
+            actuation_vector = actuation_vector.split('\n')[0] #remove newline
         
         return actuation_vector, full_depth_map
 
