@@ -229,7 +229,7 @@ class ObstacleAvoidanceEngine(cognitive_engine.Engine):
             #if we have reached the end of the fd, seek back to the top
             if actuation_vector == '':
                 self.actuations_fd.seek(0)
-                actuation_vector = self.actuations_fd.readline()
+                actuation_vector = float(self.actuations_fd.readline())
             actuation_vector = actuation_vector.split('\n')[0] #remove newline
         
         return actuation_vector, full_depth_map
