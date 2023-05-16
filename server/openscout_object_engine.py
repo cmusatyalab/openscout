@@ -88,6 +88,7 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
             self.watermark = Image.open(os.getcwd()+"/watermark.png")
             self.storage_path = os.getcwd()+"/images/"
             try:
+                os.makedirs(self.storage_path+"/received")
                 os.makedirs(self.storage_path+"/detected")
             except FileExistsError:
                 logger.info("Images directory already exists.")
@@ -169,6 +170,11 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
         result_wrapper.result_producer_name.value = self.ENGINE_NAME
 
         filename = str(timestamp_millis) + ".jpg"
+        img = Image.fromarray(image_np)
+        path = self.storage_path + "/received/" + filename
+        img.save(path, format="JPEG")
+        path = self.storage_path + "/received/latest.jpg"
+        img.save(path, format="JPEG")
 
         if len(results.pred) > 0:
             df = results.pandas().xyxy[0] # pandas dataframe
