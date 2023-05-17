@@ -8,7 +8,7 @@
 version: '2.3'
 services:
   gabriel-server:
-    image: cmusatyalab/openscout:${OPENSCOUT_TAG}
+    image: jblake1/openscout:${OPENSCOUT_TAG}
     build: 
       context: .
       dockerfile: Dockerfile.arm64
@@ -21,16 +21,16 @@ services:
     networks:
       - openscout-net
 
-  http-server:
-    image: httpd:2.4
-    container_name: http-server
-    ports:
-      - "${HTTP_PORT}:80"
-    restart: unless-stopped
-    networks:
-      - openscout-net
-    volumes:
-      - ./openscout-vol:/usr/local/apache2/htdocs
+#    http-server:
+#    image: httpd:2.4
+#    container_name: http-server
+#    ports:
+#      - "${HTTP_PORT}:80"
+#    restart: unless-stopped
+#    networks:
+#      - openscout-net
+#    volumes:
+#      - ./openscout-vol:/usr/local/apache2/htdocs
 
 #  face-engine:
 #    image: cmusatyalab/openscout:${OPENSCOUT_TAG}
@@ -55,7 +55,7 @@ services:
     #  - WEBSERVER=${WEBSERVER_URL}:${HTTP_PORT}
 
   object-engine:
-    image: cmusatyalab/openscout:${OPENSCOUT_TAG}
+    image: jblake1/openscout:${OPENSCOUT_TAG}
     build: .
     container_name: openscout-object-engine
     restart: unless-stopped

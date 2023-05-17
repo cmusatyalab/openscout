@@ -41,5 +41,7 @@ RUN --mount=type=cache,target=/root/.cache \
  && chmod go-w /etc/filebeat/filebeat.yml \
  && rm -r dist
 
+RUN pip install ultralytics
+
 EXPOSE 5555 9099
 ENTRYPOINT ["./entrypoint.sh"]
