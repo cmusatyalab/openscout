@@ -3,6 +3,7 @@
 .idea/
 .venv/
 .env
+.project
 __pycache__/
 local.properties
 android-client/app/standard/
