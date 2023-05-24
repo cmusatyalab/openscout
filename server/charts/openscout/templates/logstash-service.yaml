@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.logstashservice.name }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ template "openscout.name" . }}
+    chart: {{ template "openscout.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  type: {{ .Values.logstashservice.type }}
+  selector:
+    app: {{ .Values.logstashservice.name }}
+    release: {{ .Release.Name }}
+  ports:
+    - name: {{ .Values.logstashservice.name }}
+      port: {{ .Values.logstashservice.port }}

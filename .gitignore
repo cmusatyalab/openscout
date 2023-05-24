@@ -3,6 +3,7 @@
 .idea/
 .venv/
 .env
+.project
 __pycache__/
 local.properties
 android-client/app/standard/
@@ -10,3 +11,4 @@ android-client/build/
 server/model/
 **/app/build/
 **/app/src/main/assets/
+/bin/

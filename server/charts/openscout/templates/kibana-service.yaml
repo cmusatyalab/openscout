@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.kibanaservice.name }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ template "openscout.name" . }}
+    chart: {{ template "openscout.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  type: {{ .Values.kibanaservice.type }}
+  selector:
+    app: {{ .Values.kibanaservice.name }}
+    release: {{ .Release.Name }}
+  ports:
+    - name: {{ .Values.kibanaservice.name }}
+      port: {{ .Values.kibanaservice.port }}

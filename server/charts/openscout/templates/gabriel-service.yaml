@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.gabrielservice.name }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ template "openscout.name" . }}
+    chart: {{ template "openscout.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  type: {{ .Values.gabrielservice.type }}
+  selector:
+    app: {{ .Values.gabrielservice.name }}
+    release: {{ .Release.Name }}
+  ports:
+    - name: {{ .Values.gabrielservice.name }}
+      port: {{ .Values.gabrielservice.port }}
+{{ if eq .Values.gabrielservice.type "NodePort"}}
+      targetPort: {{ .Values.gabrielservice.port }}
+      nodePort: {{ .Values.gabrielservice.targetPort }}
+{{ end }}
+    - name: {{ .Values.openscoutservice.name }}
+      port: {{ .Values.openscoutservice.port }}

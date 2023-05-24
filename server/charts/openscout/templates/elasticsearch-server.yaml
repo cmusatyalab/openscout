@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.images.elasticsearch.name }}
+  namespace: {{ .Values.namespace }}   
+  labels:
+    app: {{ .Values.images.elasticsearch.name }}
+    chart: {{ .Values.images.elasticsearch.name }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  replicas: {{ .Values.deployment.replicas }}
+  selector:
+    matchLabels:
+      app: {{ .Values.images.elasticsearch.name }}
+      release: {{ .Release.Name }}
+  template:
+    metadata:
+      namespace: {{ .Values.namespace }}
+      labels:
+        app: {{ .Values.images.elasticsearch.name }}
+        release: {{ .Release.Name }}
+    spec:
+      containers:
+        - name: {{ .Values.images.elasticsearch.name }}
+          image: "{{ .Values.images.elasticsearch.repository }}:{{ .Values.deployment.elkversion }}-{{ .Values.deployment.arch }}"
+          imagePullPolicy: {{ .Values.images.openscout.pullPolicy }}
+          env:
+            - name: discovery.type
+              value: {{ .Values.images.elasticsearch.discoverytype }}
+          ports:
+            - containerPort: {{ .Values.elasticsearchservice.port }}
+              hostPort: {{ .Values.elasticsearchservice.targetPort }}      
+              protocol: {{ .Values.deployment.protocol }}
+
