@@ -48,7 +48,6 @@ class PytorchPredictor:
         path_prefix = Path.cwd() / "models"
         model_path = path_prefix / (model + ".pt")
         logger.info(f"Loading new model {model} at {model_path}...")
-        print(f"Loading new model {model} at {model_path}...")
         self.detection_model = self.load_model(model_path)
         self.detection_model.conf = threshold
         self.output_dict = None

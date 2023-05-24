@@ -1,5 +1,4 @@
-# FROM nvidia/cuda:11.5.1-cudnn8-devel-ubuntu18.04a
-FROM nvidia/cuda:11.8.0-cudnn8-devel-ubuntu20.04
+FROM nvidia/cuda:11.5.1-cudnn8-devel-ubuntu18.04
 LABEL maintainer="Satyalab, satya-group@lists.andrew.cmu.edu"
 
 ENV DEBIAN_FRONTEND=noninteractive \
@@ -17,7 +16,6 @@ ENV DEBIAN_FRONTEND=noninteractive \
 RUN apt-get update && apt-get install -y \
     git \
     libgl1 \
-    libglib2.0-0 \
     python3.8 \
     python3.8-venv \
     python3-pip \
@@ -28,7 +26,8 @@ RUN apt-get update && apt-get install -y \
     filebeat \
  && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-RUN python3.8 -m pip install --upgrade pip keyrings.alt \
+RUN --mount=type=cache,target=/root/.cache \
+    python3.8 -m pip install --upgrade pip keyrings.alt \
  && python3.8 -m pip install poetry
 
 # You can speed up build slightly by reducing build context with
@@ -36,18 +35,16 @@ RUN python3.8 -m pip install --upgrade pip keyrings.alt \
 WORKDIR /openscout-server
 
 # install dependencies
-# RUN poetry source add nvidia https://pypi.ngc.nvidia.com
 COPY poetry.lock pyproject.toml /openscout-server/
 RUN --mount=type=cache,target=/root/.cache \
-    poetry source add nvidia https://pypi.ngc.nvidia.com \
- && poetry update \
- && poetry install --no-cache --only main --no-root
+    poetry install --no-cache --only main --no-root
 #RUN poetry install --no-cache --only main --no-root \
 # && rm -rf /root/.cache/pypoetry
 
 COPY . /openscout-server/
 
-RUN poetry install --only main \
+RUN --mount=type=cache,target=/root/.cache \
+    poetry install --only main \
  && cp elk/filebeat.yml /etc/filebeat/filebeat.yml \
  && chmod go-w /etc/filebeat/filebeat.yml
 
