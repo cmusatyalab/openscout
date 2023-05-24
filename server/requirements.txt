@@ -6,3 +6,4 @@ timm
 #required for MS Face Cognitive Service
 azure-cognitiveservices-vision-face
 asyncio
+protobuf==3.20.*
