@@ -8,7 +8,7 @@
 version: '2.3'
 services:
   gabriel-server:
-    image: jblake1/openscout:${OPENSCOUT_TAG}
+    image: cmusatyalab/openscout:${OPENSCOUT_TAG}
     build: 
       context: .
       dockerfile: Dockerfile.arm64
@@ -55,7 +55,7 @@ services:
     #  - WEBSERVER=${WEBSERVER_URL}:${HTTP_PORT}
 
   object-engine:
-    image: jblake1/openscout:${OPENSCOUT_TAG}
+    image: cmusatyalab/openscout:${OPENSCOUT_TAG}
     build: .
     container_name: openscout-object-engine
     restart: unless-stopped
