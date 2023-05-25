@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.images.gabrielserver.name }}
+  namespace: {{ .Values.namespace }}   
+  labels:
+    app: {{ .Values.images.gabrielserver.name }}
+    chart: {{ .Values.images.gabrielserver.name }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  replicas: {{ .Values.deployment.replicas }}
+  selector:
+    matchLabels:
+      app: {{ .Values.images.gabrielserver.name }}
+      release: {{ .Release.Name }}
+  template:
+    metadata:
+      namespace: {{ .Values.namespace }}
+      labels:
+        app: {{ .Values.images.gabrielserver.name }}
+        release: {{ .Release.Name }}
+    spec:
+      containers:
+        - name: {{ .Values.images.gabrielserver.name }}
+          image: "{{ .Values.images.openscout.repository }}:{{ .Values.images.openscout.tag }}"
+          imagePullPolicy: {{ .Values.images.openscout.pullPolicy }}
+          command: {{ .Values.images.gabrielserver.command }}
+          ports:
+            - containerPort: {{ .Values.gabrielservice.port }}
+              hostPort: {{ .Values.gabrielservice.targetPort }}      
+              protocol: {{ .Values.deployment.protocol }}
+            - containerPort: {{ .Values.openscoutservice.port }}
+              hostPort: {{ .Values.openscoutservice.port }}
+              protocol: {{ .Values.deployment.protocol }}            
+          volumeMounts:
+            - name: shared-data
+              mountPath: /usr/share/gabrielserver    
+      volumes:
+        - name: shared-data
+          emptyDir: {}

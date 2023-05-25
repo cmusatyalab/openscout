@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.images.objectengine.name }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ .Values.images.objectengine.name }}
+    chart: {{ .Values.images.objectengine.name }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  replicas: {{ .Values.deployment.replicas }}
+  selector:
+    matchLabels:
+      app: {{ .Values.images.objectengine.name }}
+      release: {{ .Release.Name }}
+  template:
+    metadata:
+      namespace: {{ .Values.namespace }}
+      labels:
+        app: {{ .Values.images.objectengine.name }}
+        release: {{ .Release.Name }}
+    spec:
+      containers:
+        - name: {{ .Values.images.objectengine.name }}
+          image: "{{ .Values.images.openscout.repository }}:{{ .Values.images.openscout.tag }}"
+          imagePullPolicy: {{ .Values.images.openscout.pullPolicy }}
+          command: {{ .Values.images.objectengine.command }}
+          args: {{ .Values.images.objectengine.args }}
+          # command: ["openscout-object-engine", "--model", "coco", "--threshold", "0.7", "--exclude", "1", ""]
+          #ports:
+          #  - containerPort: {{ .Values.images.objectengine.port }}
+          #    hostPort: {{ .Values.images.objectengine.nodePort }}
+          #    protocol: {{ .Values.deployment.protocol }}
+          #resources:
+           #limits:
+           #   nvidia.com/gpu: 1
+          volumeMounts:
+            - name: shared-data
+              mountPath: /usr/share/openscout
+            - name: objectengine
+              mountPath: {{ .Values.volumes.objectengine.mountPath }}
+            - name: models
+              mountPath: {{ .Values.volumes.models.mountPath }}    
+          env:
+            - name: "WEBSERVER"
+              value: "{{.Values.images.httpd.url}}:{{.Values.images.httpd.nodePort}}"
+      volumes:
+        - name: shared-data
+          emptyDir: {}
+        - name: objectengine
+          hostPath:
+            path: {{ .Values.volumes.objectengine.hostPath }}
+        - name: models
+          hostPath:
+            path: {{ .Values.volumes.models.hostPath }}
+

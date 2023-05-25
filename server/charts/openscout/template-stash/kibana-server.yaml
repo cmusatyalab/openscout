@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.images.kibana.name }}
+  namespace: {{ .Values.namespace }}   
+  labels:
+    app: {{ .Values.images.kibana.name }}
+    chart: {{ .Values.images.kibana.name }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  replicas: {{ .Values.deployment.replicas }}
+  selector:
+    matchLabels:
+      app: {{ .Values.images.kibana.name }}
+      release: {{ .Release.Name }}
+  template:
+    metadata:
+      namespace: {{ .Values.namespace }}
+      labels:
+        app: {{ .Values.images.kibana.name }}
+        release: {{ .Release.Name }}
+    spec:
+      containers:
+        - name: {{ .Values.images.kibana.name }}
+          image: "{{ .Values.images.kibana.repository }}:{{ .Values.deployment.elkversion }}"
+          imagePullPolicy: {{ .Values.images.openscout.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.kibanaservice.port }}
+              hostPort: {{ .Values.kibanaservice.targetPort }}      
+              protocol: {{ .Values.deployment.protocol }}
+
