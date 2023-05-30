@@ -8,8 +8,10 @@
 version: '2.3'
 services:
   gabriel-server:
-    #image: cmusatyalab/openscout:${OPENSCOUT_TAG}
-    build: .
+    image: cmusatyalab/openscout:${OPENSCOUT_TAG}
+    build: 
+      context: .
+      dockerfile: Dockerfile.arm64
     container_name: gabriel-server
     ports:
       - "9099:9099"
@@ -19,41 +21,41 @@ services:
     networks:
       - openscout-net
 
-  http-server:
-    image: httpd:2.4
-    container_name: http-server
-    ports:
-      - "${HTTP_PORT}:80"
-    restart: unless-stopped
-    networks:
-      - openscout-net
-    volumes:
-      - ./openscout-vol:/usr/local/apache2/htdocs
+#    http-server:
+#    image: httpd:2.4
+#    container_name: http-server
+#    ports:
+#      - "${HTTP_PORT}:80"
+#    restart: unless-stopped
+#    networks:
+#      - openscout-net
+#    volumes:
+#      - ./openscout-vol:/usr/local/apache2/htdocs
 
-  face-engine:
-    #image: cmusatyalab/openscout:${OPENSCOUT_TAG}
-    build: .
-    container_name: openscout-face-engine
-    restart: unless-stopped
-    privileged: true
-    entrypoint: ["openscout-face-engine", "--endpoint", "http://openface-service:5000", "--threshold", "${FACE_THRESHOLD}", "${STORE}"]
+#  face-engine:
+#    image: cmusatyalab/openscout:${OPENSCOUT_TAG}
+#    build: .
+#    container_name: openscout-face-engine
+#    restart: unless-stopped
+#    privileged: true
+#    entrypoint: ["openscout-face-engine", "--endpoint", "http://openface-service:5000", "--threshold", "${FACE_THRESHOLD}", "${STORE}"]
     #to use MS Face Cognitive Service, make this the entrypoint instead and use the ms-face-server container...
     #entrypoint: ["openscout-face-engine", "--msface", "--endpoint", "http://ms-face-service:5000","--apikey", "${API_KEY}", "--threshold", "${FACE_THRESHOLD}"]
-    volumes:
-      - ./openscout-vol:/openscout-server/images/
-      - training-vol:/openscout-server/training/
-    depends_on:
-      - gabriel-server
-      - openface-service
-      #- ms-face-service
-    networks:
-      - openscout-net
-      - elk
-    environment:
-      - WEBSERVER=${WEBSERVER_URL}:${HTTP_PORT}
+    #    volumes:
+    #      - ./openscout-vol:/openscout-server/images/
+    #      - training-vol:/openscout-server/training/
+    #    depends_on:
+    #  - gabriel-server
+    #  - openface-service
+    #  #- ms-face-service
+    #networks:
+    #      - openscout-net
+    #  - elk
+    #environment:
+    #  - WEBSERVER=${WEBSERVER_URL}:${HTTP_PORT}
 
   object-engine:
-    #image: cmusatyalab/openscout:${OPENSCOUT_TAG}
+    image: cmusatyalab/openscout:${OPENSCOUT_TAG}
     build: .
     container_name: openscout-object-engine
     restart: unless-stopped
@@ -80,18 +82,18 @@ services:
     #  - CUDA_VISIBLE_DEVICES=-1 #set this if you want to force CPU only
 
 # OpenFace is the default for face recognition
-  openface-service:
-    image: cmusatyalab/openface
-    container_name: openface-service
-    ports:
-      - "5000:5000"
-    restart: unless-stopped
-    privileged: true
-    entrypoint: ["python", "/root/openface-rest.py", "/openscout-server/training/"]
-    volumes:
-      - training-vol:/openscout-server/training/
-    networks:
-      - openscout-net
+#  openface-service:
+#    image: cmusatyalab/openface
+#    container_name: openface-service
+#    ports:
+#      - "5000:5000"
+#    restart: unless-stopped
+#    privileged: true
+#    entrypoint: ["python", "/root/openface-rest.py", "/openscout-server/training/"]
+#    volumes:
+#      - training-vol:/openscout-server/training/
+#    networks:
+#      - openscout-net
 
 # or the MS Face Cognitive Server can be used (Azure Account Required)
   # ms-face-service:
@@ -149,3 +151,4 @@ networks:
   elk:
 volumes:
   training-vol:
+
