@@ -2,7 +2,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ .Values.images.objectengine.name }}
-  namespace: {{ .Values.namespace }}
   labels:
     app: {{ .Values.images.objectengine.name }}
     chart: {{ .Values.images.objectengine.name }}
@@ -16,7 +15,6 @@ spec:
       release: {{ .Release.Name }}
   template:
     metadata:
-      namespace: {{ .Values.namespace }}
       labels:
         app: {{ .Values.images.objectengine.name }}
         release: {{ .Release.Name }}
@@ -26,32 +24,43 @@ spec:
           image: "{{ .Values.images.openscout.repository }}:{{ .Values.images.openscout.tag }}"
           imagePullPolicy: {{ .Values.images.openscout.pullPolicy }}
           command: {{ .Values.images.objectengine.command }}
-          args: {{ .Values.images.objectengine.args }}
-          # command: ["openscout-object-engine", "--model", "coco", "--threshold", "0.7", "--exclude", "1", ""]
-          #ports:
-          #  - containerPort: {{ .Values.images.objectengine.port }}
-          #    hostPort: {{ .Values.images.objectengine.nodePort }}
-          #    protocol: {{ .Values.deployment.protocol }}
-          #resources:
-           #limits:
-           #   nvidia.com/gpu: 1
-          volumeMounts:
-            - name: shared-data
-              mountPath: /usr/share/openscout
-            - name: objectengine
-              mountPath: {{ .Values.volumes.objectengine.mountPath }}
-            - name: models
-              mountPath: {{ .Values.volumes.models.mountPath }}    
+          args: {{ .Values.images.objectengine.args }}   
           env:
             - name: "WEBSERVER"
               value: "{{.Values.images.httpd.url}}:{{.Values.images.httpd.nodePort}}"
+          volumeMounts:
+          - name: modeldir
+            mountPath: "/openscout-server/models"
+          - name: cachedir
+            mountPath: "/root/.cache/torch/hub"
+      #These containers are run during pod initialization
+      initContainers:
+        {{ if .Values.model.url }}
+        - name: prepare-model
+          image: busybox:1.28
+          command:
+            - wget
+            - "-O"
+            - {{ printf "%s/%s" "/openscout-server/models" .Values.model.name }}
+            - {{.Values.model.url}}
+          volumeMounts:
+            - name: modeldir
+              mountPath: "/openscout-server/models"
+        {{ end }}
+        - name: prepare-model-2
+          image: busybox:1.28
+          command:
+            - wget
+            - "-O"
+            - "/root/.cache/torch/hub/master.zip"
+            - "http://vm039.elijah.cs.cmu.edu:81/master.zip"
+          volumeMounts:
+            - name: cachedir
+              mountPath: "/root/.cache/torch/hub"
       volumes:
-        - name: shared-data
+        - name: modeldir
           emptyDir: {}
-        - name: objectengine
-          hostPath:
-            path: {{ .Values.volumes.objectengine.hostPath }}
-        - name: models
-          hostPath:
-            path: {{ .Values.volumes.models.hostPath }}
+        - name: cachedir
+          emptyDir: {}
+
 

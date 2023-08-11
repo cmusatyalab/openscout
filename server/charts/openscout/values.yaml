@@ -15,8 +15,8 @@ images:
   # Globals
   openscout:
      name: openscout
-     repository: cmusatyalab/openscout
-     tag: latest
+     repository: xianglic/openscout
+     tag: stable
      pullPolicy: IfNotPresent
      
   # For each server
@@ -52,14 +52,10 @@ images:
     repository: docker.elastic.co/logstash/logstash-oss
     # Tag is elkversion
 
-# For each volume mount
-volumes:
-  pipeline:
-    hostPath: /opt/openscout/elk/pipeline
-    mountPath: /usr/share/logstash/pipeline
-  objectengine:
-    hostPath: /opt/openscout/openscout-vol
-    mountPath: /openscout/server/images    
+# For each model
+model:
+  name: coco.pt
+  url: http://vm039.elijah.cs.cmu.edu:81/coco.pt
 
 # For each service
 gabrielservice:
@@ -78,7 +74,8 @@ openscoutservice:
   
 httpdservice:   
   name: httpd
-  type: NodePort
+  #type: NodePort
+  type: ClusterIP
   port: 80
   nodePort: 30082
   

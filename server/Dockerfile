@@ -1,4 +1,4 @@
-FROM nvidia/cuda:11.5.1-cudnn8-devel-ubuntu18.04
+FROM  nvidia/cuda:11.5.2-cudnn8-devel-ubuntu18.04
 LABEL maintainer="Satyalab, satya-group@lists.andrew.cmu.edu"
 
 ENV DEBIAN_FRONTEND=noninteractive \
@@ -16,6 +16,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
 RUN apt-get update && apt-get install -y \
     git \
     libgl1 \
+    libglib2.0-0 \
     python3.8 \
     python3.8-venv \
     python3-pip \

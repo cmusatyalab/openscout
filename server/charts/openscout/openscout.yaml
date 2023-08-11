@@ -2,7 +2,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ template "openscout.fullname" . }}
-  namespace: {{ .Values.namespace }}
   labels:
     app: {{ template "openscout.name" . }}
     chart: {{ template "openscout.chart" . }}
@@ -16,7 +15,6 @@ spec:
       release: {{ .Release.Name }}
   template:
     metadata:
-      namespace: {{ .Values.namespace }}
       labels:
         app: {{ template "openscout.name" . }}
         release: {{ .Release.Name }}
