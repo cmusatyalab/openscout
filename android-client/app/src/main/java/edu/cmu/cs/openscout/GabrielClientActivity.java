@@ -585,14 +585,17 @@ public class GabrielClientActivity extends AppCompatActivity {
                 ByteString dataString = result.getPayload();
                 String results = dataString.toStringUtf8();
 
-                resultsView = (TextView) findViewById(R.id.resultsText);
-                String prev = resultsView.getText().toString();
-                StringBuilder sb = new StringBuilder();
-                sb.append(results);
-                sb.append("\n");
-                sb.append(prev);
-                detections++;
-                resultsView.setText(sb.toString());
+                // UI updates must always run in UI thread
+                runOnUiThread(() -> {
+                    resultsView = (TextView) findViewById(R.id.resultsText);
+                    String prev = resultsView.getText().toString();
+                    StringBuilder sb = new StringBuilder();
+                    sb.append(results);
+                    sb.append("\n");
+                    sb.append(prev);
+                    detections++;
+                    resultsView.setText(sb.toString());
+                });
             }
         };
 

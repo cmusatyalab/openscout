@@ -105,6 +105,15 @@
     <string name="pref_title_gpsdist">Distance (meters)</string>
     <string name="pref_results_opacity">Results Pane Opacity %</string>
     <string name="pref_show_training">Show Face Training Icon</string>
+    <string name="backend">Backend</string>
+    <string name="launch_text">Launch</string>
+    <string name="backend_name">Name</string>
+    <string name="resource_label">Resource</string>
+    <string name="version_label">Version</string>
+    <string name="find_cloudlet_title">Find Cloudlet</string>
+    <string name="cloud_url">Cloud URL</string>
+    <string name="find_cloudlets_menu">Find Cloudlets</string>
+    <string name="title_activity_sinfonia">Sinfonia</string>
 
 
 </resources>

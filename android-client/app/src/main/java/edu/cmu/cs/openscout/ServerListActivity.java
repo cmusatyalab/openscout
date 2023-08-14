@@ -15,6 +15,7 @@
 package edu.cmu.cs.openscout;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -42,14 +43,15 @@ import java.util.Map;
 import java.util.UUID;
 
 import edu.cmu.cs.gabriel.Const;
-import edu.cmu.cs.gabriel.serverlist.Server;
 import edu.cmu.cs.gabriel.serverlist.ServerListFragment;
+import edu.cmu.cs.sinfonia.SinfoniaActivity;
 
 
 public class ServerListActivity extends AppCompatActivity implements LocationListener {
     CameraManager camMan = null;
     private SharedPreferences mSharedPreferences;
     private static final int MY_PERMISSIONS_REQUEST_CAMERA = 23;
+    private static final String TAG = "OpenScout/ServerListActivity";
 
     void loadPref(SharedPreferences sharedPreferences, String key) {
         Const.loadPref(sharedPreferences, key);
@@ -63,12 +65,14 @@ public class ServerListActivity extends AppCompatActivity implements LocationLis
         return true;
     }
 
+    @SuppressLint("NonConstantResourceId")
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         // Handle action bar item clicks here. The action bar will
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
+        Intent intent;
         switch (id) {
             case R.id.about:
                 AlertDialog.Builder builder = new AlertDialog.Builder(this);
@@ -79,8 +83,12 @@ public class ServerListActivity extends AppCompatActivity implements LocationLis
                 dialog.show();
                 return true;
             case R.id.settings:
-                Intent intent = new Intent(this, SettingsActivity.class);
+                intent = new Intent(this, SettingsActivity.class);
                 this.startActivity(intent);
+                return true;
+            case R.id.find_cloudlets:
+                intent = new Intent(this, SinfoniaActivity.class);
+                startActivity(intent);
                 return true;
             default:
                 return false;
@@ -171,7 +179,6 @@ public class ServerListActivity extends AppCompatActivity implements LocationLis
 
 
         camMan = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
-
     }
 
     void requestPermissionHelper(String permissions[]) {

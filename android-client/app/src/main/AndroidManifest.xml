@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    package="edu.cmu.cs.openscout"
     android:versionCode="5"
     android:versionName="0.5">
 
@@ -44,7 +43,8 @@
             android:name=".ServerListActivity"
             android:label="@string/title_activity_main"
             android:screenOrientation="sensor"
-            android:theme="@style/MyGabrielMaterialTheme">
+            android:theme="@style/MyGabrielMaterialTheme"
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -55,7 +55,8 @@
             android:name=".GabrielClientActivity"
             android:label="@string/title_activity_main"
             android:screenOrientation="landscape"
-            android:theme="@style/MyGabrielMaterialTheme">
+            android:theme="@style/MyGabrielMaterialTheme"
+            android:exported="true">
 
             <!-- Enable this intent-filter for regular Android Application -->
             <!-- <intent-filter> -->
@@ -74,6 +75,21 @@
                 android:name="com.google.android.glass.VoiceTrigger"
                 android:resource="@xml/gabriel_start" />
         </activity>
+        <activity
+            android:name="edu.cmu.cs.sinfonia.SinfoniaActivity"
+            android:label="@string/title_activity_sinfonia"
+            android:parentActivityName=".ServerListActivity"
+            android:screenOrientation="sensor"
+            android:theme="@style/MyGabrielMaterialTheme" />
+
+        <service
+            android:name="edu.cmu.cs.sinfonia.SinfoniaService"
+            android:permission="edu.cmu.cs.sinfonia.permission.BIND_SINFONIA_SERVICE"
+            android:exported="false" >
+            <intent-filter>
+                <action android:name="edu.cmu.cs.sinfonia.action.BIND" />
+            </intent-filter>
+        </service>
     </application>
 
 </manifest>
