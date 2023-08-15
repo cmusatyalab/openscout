@@ -114,6 +114,7 @@
     <string name="cloud_url">Cloud URL</string>
     <string name="find_cloudlets_menu">Find Cloudlets</string>
     <string name="title_activity_sinfonia">Sinfonia</string>
+    <string name="cleanup_text">Cleanup</string>
 
 
 </resources>
