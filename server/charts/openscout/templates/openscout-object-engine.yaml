@@ -24,43 +24,26 @@ spec:
           image: "{{ .Values.images.openscout.repository }}:{{ .Values.images.openscout.tag }}"
           imagePullPolicy: {{ .Values.images.openscout.pullPolicy }}
           command: {{ .Values.images.objectengine.command }}
-          args: {{ .Values.images.objectengine.args }}   
+          args: {{ .Values.images.objectengine.args }}
+          resources:
+            {{ if .Values.images.objectengine.GPU_enabled }}
+            limits:
+              nvidia.com/gpu: 1
+            {{ end }}   
           env:
             - name: "WEBSERVER"
               value: "{{.Values.images.httpd.url}}:{{.Values.images.httpd.nodePort}}"
-          volumeMounts:
-          - name: modeldir
-            mountPath: "/openscout-server/models"
-          - name: cachedir
-            mountPath: "/root/.cache/torch/hub"
-      #These containers are run during pod initialization
+      #These containers are run during pod initialization, and if no model url specified by users, the deployment will use the coco.pt as default model under the ./models dir
       initContainers:
-        {{ if .Values.model.url }}
+        {{ if .Values.images.objectengine.model.url }}
         - name: prepare-model
           image: busybox:1.28
           command:
             - wget
             - "-O"
-            - {{ printf "%s/%s" "/openscout-server/models" .Values.model.name }}
-            - {{.Values.model.url}}
-          volumeMounts:
-            - name: modeldir
-              mountPath: "/openscout-server/models"
+            - {{ printf "%s/%s" "/openscout-server/models" .Values.images.objectengine.model.name }}
+            - {{.Values.images.objectengine.model.url}}
         {{ end }}
-        - name: prepare-model-2
-          image: busybox:1.28
-          command:
-            - wget
-            - "-O"
-            - "/root/.cache/torch/hub/master.zip"
-            - "http://vm039.elijah.cs.cmu.edu:81/master.zip"
-          volumeMounts:
-            - name: cachedir
-              mountPath: "/root/.cache/torch/hub"
-      volumes:
-        - name: modeldir
-          emptyDir: {}
-        - name: cachedir
-          emptyDir: {}
+
 
 

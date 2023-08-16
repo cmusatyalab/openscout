@@ -16,7 +16,7 @@ images:
   openscout:
      name: openscout
      repository: xianglic/openscout
-     tag: stable
+     tag: cached_model
      pullPolicy: IfNotPresent
      
   # For each server
@@ -27,6 +27,11 @@ images:
   objectengine:
      name: openscout-object-engine
      command: ["openscout-object-engine"]
+     GPU_enabled: false
+     # specifying a certain model name and its url if user need to use a specific model; otherwise the deployment will use coco.pt as default in /models dir
+     model:
+      name:
+      url: 
      
   httpd:   
      name: http-server
@@ -52,11 +57,6 @@ images:
     repository: docker.elastic.co/logstash/logstash-oss
     # Tag is elkversion
 
-# For each model
-model:
-  name: coco.pt
-  url: http://vm039.elijah.cs.cmu.edu:81/coco.pt
-
 # For each service
 gabrielservice:
   name: gabriel-server
@@ -74,8 +74,7 @@ openscoutservice:
   
 httpdservice:   
   name: httpd
-  #type: NodePort
-  type: ClusterIP
+  type: NodePort
   port: 80
   nodePort: 30082
   
