@@ -1,4 +1,4 @@
-FROM nvidia/cuda:11.5.1-cudnn8-devel-ubuntu18.04
+FROM nvidia/cuda:11.5.2-cudnn8-devel-ubuntu18.04
 LABEL Satyalab, satya-group@lists.andrew.cmu.edu
 
 ARG DEBIAN_FRONTEND=noninteractive
@@ -13,14 +13,14 @@ RUN apt-get update && apt-get install -y \
     libsm6 \
     libxext6 \
     libxrender1 \
-    python3.7 \
+    python3.8 \
     python3-pip \
     python3-pyqt5 \
     wget \
  && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.7 2
-RUN update-alternatives --install /usr/bin/python3 python /usr/bin/python3.7 2
+RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.8 2
+RUN update-alternatives --install /usr/bin/python3 python /usr/bin/python3.8 2
 
 #upgrade pip, otherwise tensorflow 1.15.0 will not be found
 RUN python3 -m pip install --upgrade pip
@@ -36,8 +36,8 @@ RUN python3 -m pip install --no-cache-dir \
     'websockets==8.0.0' \
     zmq 
 
-RUN git clone https://github.com/ultralytics/yolov5
-RUN cd yolov5 && python3 -m pip install -r requirements.txt
+#RUN git clone https://github.com/ultralytics/yolov5
+#RUN cd yolov5 && python3 -m pip install -r requirements.txt
 
 #Install Filebeat to push log data to ELK
 RUN wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | apt-key add -
