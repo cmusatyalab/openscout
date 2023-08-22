@@ -199,7 +199,7 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
                         target_x_pix = int(((box[3] - box[1]) / 2.0) + box[1]) * image_np.shape[1]
                         target_y_pix = int(((box[2] - box[0]) / 2.0) + box[0]) * image_np.shape[0]
                         lat, lon = self.estimateGPS(extras.location.latitude, extras.location.longitude, extras.status.gimbal_pitch, extras.status.bearing*(180 /np.pi), extras.location.altitude, target_x_pix, target_y_pix )
-                        r.append({'id': i, 'class': names[i], 'score': scores[i], 'lat': lat, 'lon': lon, 'box': box})
+                        r.append({"id": i, "class": names[i], "score": scores[i], "lat": lat, "lon": lon, "box": box})
                         if self.store_detections:
                             detection_log.info("{},{},{},{},{},{:.3f},{}".format(timestamp_millis, extras.drone_id, lat, lon, names[i],scores[i], os.environ["WEBSERVER"]+"/detected/"+filename))
                         else:

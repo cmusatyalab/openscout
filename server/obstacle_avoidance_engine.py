@@ -132,7 +132,7 @@ class ObstacleAvoidanceEngine(cognitive_engine.Engine):
         result = gabriel_pb2.ResultWrapper.Result()
         result.payload_type = gabriel_pb2.PayloadType.TEXT
         r = []
-        r.append({'vector': vector })
+        r.append({"vector": vector })
         logger.info(f"Vector returned by obstacle avoidance algorithm: {vector}")
         result.payload = json.dumps(r).encode(encoding="utf-8")
         result_wrapper.results.append(result)
@@ -231,6 +231,8 @@ class ObstacleAvoidanceEngine(cognitive_engine.Engine):
                 self.actuations_fd.seek(0)
                 actuation_vector = self.actuations_fd.readline()
             actuation_vector = float(actuation_vector.split('\n')[0])
+            if actuation_vector == 999:
+                time.sleep(5)
         
         return actuation_vector, full_depth_map
 
