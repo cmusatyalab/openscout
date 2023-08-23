@@ -67,7 +67,7 @@ services:
               count: 1
               capabilities: [gpu]
     volumes:
-      # - ./models:/openscout-server/models/
+      - ./models:/openscout-server/models/
       - ./openscout-vol:/openscout-server/images/
     depends_on:
       - gabriel-server
