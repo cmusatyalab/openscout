@@ -2,7 +2,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ .Values.images.logstash.name }}
-  namespace: {{ .Values.namespace }}   
   labels:
     app: {{ .Values.images.logstash.name }}
     chart: {{ .Values.images.logstash.name }}
@@ -16,7 +15,6 @@ spec:
       release: {{ .Release.Name }}
   template:
     metadata:
-      namespace: {{ .Values.namespace }}
       labels:
         app: {{ .Values.images.logstash.name }}
         release: {{ .Release.Name }}
@@ -26,14 +24,16 @@ spec:
           image: "{{ .Values.images.logstash.repository }}:{{ .Values.deployment.elkversion }}"
           imagePullPolicy: {{ .Values.images.openscout.pullPolicy }}
           volumeMounts:
-          - mountPath: {{ .Values.volumes.pipeline.mountPath }}
-            name: pipeline
+            #hardcoded the mountpath because there is no need for customize
+            - mountPath: /usr/share/logstash/pipeline
+              name: pipeline
+              readOnly: true
           ports:
             - containerPort: {{ .Values.logstashservice.port }}
               hostPort: {{ .Values.logstashservice.targetPort }}      
               protocol: {{ .Values.deployment.protocol }}
       volumes:
-      - name: pipeline
-        hostPath:
-          path: {{ .Values.volumes.pipeline.hostPath }}
+        - name: pipeline
+          configMap:
+            name: logstash-pipeline
 

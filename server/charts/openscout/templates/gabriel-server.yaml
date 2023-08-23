@@ -2,7 +2,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ .Values.images.gabrielserver.name }}
-  namespace: {{ .Values.namespace }}   
   labels:
     app: {{ .Values.images.gabrielserver.name }}
     chart: {{ .Values.images.gabrielserver.name }}
@@ -16,7 +15,6 @@ spec:
       release: {{ .Release.Name }}
   template:
     metadata:
-      namespace: {{ .Values.namespace }}
       labels:
         app: {{ .Values.images.gabrielserver.name }}
         release: {{ .Release.Name }}

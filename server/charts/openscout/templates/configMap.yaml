@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: logstash-pipeline
+data:
+  openscout-pipeline.cfg: |
+    input {
+      beats {
+          port => "5044"
+        }
+    }
+
+    filter {
+        grok {
+            match => { "message" => "%{DATA:detection_time},%{DATA:client_id},%{NUMBER:latitude:float},%{NUMBER:longitude:float},%{DATA:entity},%{NUMBER:confidence:float},(%{URI:image})?" }
+        }
+        mutate {
+            add_field => {"location" => "%{latitude},%{longitude}"
+        }
+      }
+    }
+
+    output {
+        stdout { codec => rubydebug }
+        elasticsearch {
+            hosts => [ "elasticsearch:9200" ]
+            index => "openscout"
+        }
+    }

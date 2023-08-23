@@ -2,7 +2,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ .Values.images.httpd.name }}
-  namespace: {{ .Values.namespace }}
   labels:
     app: {{ .Values.images.httpd.name }}
     chart: {{ .Values.images.httpd.name }}
@@ -16,7 +15,6 @@ spec:
       release: {{ .Release.Name }}
   template:
     metadata:
-      namespace: {{ .Values.namespace }}
       labels:
         app: {{ .Values.images.httpd.name }}
         release: {{ .Release.Name }}

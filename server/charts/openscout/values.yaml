@@ -15,8 +15,8 @@ images:
   # Globals
   openscout:
      name: openscout
-     repository: cmusatyalab/openscout
-     tag: latest
+     repository: xianglic/openscout
+     tag: cached_model
      pullPolicy: IfNotPresent
      
   # For each server
@@ -27,6 +27,11 @@ images:
   objectengine:
      name: openscout-object-engine
      command: ["openscout-object-engine"]
+     GPU_enabled: false
+     # specifying a certain model name and its url if user need to use a specific model; otherwise the deployment will use coco.pt as default in /models dir
+     model:
+      name:
+      url: 
      
   httpd:   
      name: http-server
@@ -51,15 +56,6 @@ images:
     name: logstash
     repository: docker.elastic.co/logstash/logstash-oss
     # Tag is elkversion
-
-# For each volume mount
-volumes:
-  pipeline:
-    hostPath: /opt/openscout/elk/pipeline
-    mountPath: /usr/share/logstash/pipeline
-  objectengine:
-    hostPath: /opt/openscout/openscout-vol
-    mountPath: /openscout/server/images    
 
 # For each service
 gabrielservice:
