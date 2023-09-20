@@ -30,7 +30,7 @@ RUN apt-get update && apt-get install -y \
 
 RUN --mount=type=cache,target=/root/.cache \
     python3.8 -m pip install --upgrade pip keyrings.alt \
- && python3.8 -m pip install poetry
+ && python3.8 -m pip install poetry==1.6.1
 
 # You can speed up build slightly by reducing build context with
 #     git archive --format=tgz HEAD | docker build -t openscout -
