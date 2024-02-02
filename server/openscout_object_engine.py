@@ -30,18 +30,11 @@ from PIL import Image, ImageDraw
 import traceback
 import json
 from scipy.spatial.transform import Rotation as R
-
+import redis
 import torch
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
-
-detection_log = logging.getLogger("object-engine")
-fh = logging.FileHandler('/openscout/server/openscout-object-engine.log')
-fh.setLevel(logging.INFO)
-formatter = logging.Formatter('%(message)s')
-fh.setFormatter(formatter)
-detection_log.addHandler(fh)
 
 class PytorchPredictor():
     def __init__(self, model, threshold):
@@ -69,6 +62,9 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
         self.store_detections = args.store
         self.model = args.model
         self.drone_type = args.drone
+        self.r = redis.Redis(host='redis', port=args.redis, username='steeleagle', password=f'{args.auth}',decode_responses=True)
+        self.r.ping()
+        logger.info(f"Connected to redis on port {args.redis}...")
         #timing vars
         self.count = 0
         self.lasttime = time.time()
@@ -88,7 +84,6 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
             self.watermark = Image.open(os.getcwd()+"/watermark.png")
             self.storage_path = os.getcwd()+"/images/"
             try:
-                os.makedirs(self.storage_path+"/received")
                 os.makedirs(self.storage_path+"/detected")
             except FileExistsError:
                 logger.info("Images directory already exists.")
@@ -142,6 +137,13 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
         logger.info("Estimated GPS location: ({0}, {1})".format(est_lat, est_lon))
         return est_lat, est_lon
 
+    def storeDetection(self, drone, lat, lon, cls, conf, link=""):
+        key = self.r.xadd(
+                    f"detections",
+                    {"drone_id": drone, "longitude": lon, "latitude": lat,
+                     "cls": cls, "confidence": conf, "link": link },
+                )
+
     def handle(self, input_frame):
         if input_frame.payload_type == gabriel_pb2.PayloadType.TEXT:
             #if the payload is TEXT, say from a CNC client, we ignore
@@ -170,15 +172,9 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
         result_wrapper.result_producer_name.value = self.ENGINE_NAME
 
         filename = str(timestamp_millis) + ".jpg"
-        img = Image.fromarray(image_np)
-        path = self.storage_path + "/received/" + filename
-        img.save(path, format="JPEG")
-        path = self.storage_path + "/received/latest.jpg"
-        img.save(path, format="JPEG")
 
         if len(results.pred) > 0:
             df = results.pandas().xyxy[0] # pandas dataframe
-            logger.debug(df)
             #convert dataframe to python lists
             classes = df['class'].values.tolist()
             scores = df['confidence'].values.tolist()
@@ -200,10 +196,7 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
                         target_y_pix = int(((box[2] - box[0]) / 2.0) + box[0]) * image_np.shape[0]
                         lat, lon = self.estimateGPS(extras.location.latitude, extras.location.longitude, extras.status.gimbal_pitch, extras.status.bearing*(180 /np.pi), extras.location.altitude, target_x_pix, target_y_pix )
                         r.append({"id": i, "class": names[i], "score": scores[i], "lat": lat, "lon": lon, "box": box})
-                        if self.store_detections:
-                            detection_log.info("{},{},{},{},{},{:.3f},{}".format(timestamp_millis, extras.drone_id, lat, lon, names[i],scores[i], os.environ["WEBSERVER"]+"/detected/"+filename))
-                        else:
-                            detection_log.info("{},{},{},{},{},{:.3f},".format(timestamp_millis, extras.drone_id, lat, lon, names[i], scores[i]))
+                        self.storeDetection(extras.drone_id, lat, lon, names[i],scores[i], os.environ["WEBSERVER"]+"/detected/"+filename if self.store_detections else "" )
 
             if detections_above_threshold:
                 logger.info(json.dumps(r,sort_keys=True, indent=4))

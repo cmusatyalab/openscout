@@ -62,6 +62,15 @@ def main():
         "-f", "--faux",  action="store_true", default=False, help="Generate faux vectors using the file specfied instead of results from MiDaS."
     )
 
+    parser.add_argument(
+        "-R", "--redis", type=int, default=6379, help="Set port number for redis connection [default: 6379]"
+    )
+
+    parser.add_argument(
+        "-a", "--auth", default="", help="Share key for redis user."
+    )
+
+
     args, _ = parser.parse_known_args()
 
     def engine_setup():

@@ -73,6 +73,14 @@ def main():
     parser.add_argument(
         "-d", "--drone", default='anafi', help="Drone model ([anafi,usa]).  Used to define HFOV and VFOV for camera."
     )
+    parser.add_argument(
+        "-R", "--redis", type=int, default=6379, help="Set port number for redis connection [default: 6379]"
+    )
+
+    parser.add_argument(
+        "-a", "--auth", default="", help="Share key for redis user."
+    )
+
 
     args, _ = parser.parse_known_args()
 
@@ -84,8 +92,6 @@ def main():
 
         return engine
 
-    logger.info("Starting filebeat...")
-    subprocess.call(["service", "filebeat", "start"])
     logger.info("Starting object detection cognitive engine..")
     engine_runner.run(engine=object_engine_setup(), source_name=args.source, server_address=args.gabriel, all_responses_required=True)
 

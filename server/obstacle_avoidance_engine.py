@@ -29,6 +29,7 @@ from cnc_protocol import cnc_pb2
 from PIL import Image, ImageDraw
 import json
 import torch
+import redis
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -53,6 +54,9 @@ class ObstacleAvoidanceEngine(cognitive_engine.Engine):
                 'DPT_Hybrid',
                 'MiDaS',
                 'MiDaS_small']
+        self.r = redis.Redis(host='redis', port=args.redis, username='steeleagle', password=f'{args.auth}',decode_responses=True)
+        self.r.ping()
+        logger.info(f"Connected to redis on port {args.redis}...")
         #timing vars
         self.count = 0
         self.lasttime = time.time()
@@ -103,6 +107,12 @@ class ObstacleAvoidanceEngine(cognitive_engine.Engine):
         logger.info("Depth predictor initialized with the following model: {}".format(model))
         logger.info("Depth Threshold: {}".format(self.threshold))
 
+    def storeAvoidance(self, drone, vec):
+        key = self.r.xadd(
+                    f"avoidance",
+                    {"drone_id": drone, "vector": vec },
+                )
+
     def handle(self, input_frame):
         if input_frame.payload_type == gabriel_pb2.PayloadType.TEXT:
             #if the payload is TEXT, say from a CNC client, we ignore
@@ -134,6 +144,7 @@ class ObstacleAvoidanceEngine(cognitive_engine.Engine):
         r = []
         r.append({"vector": vector })
         logger.info(f"Vector returned by obstacle avoidance algorithm: {vector}")
+        self.storeAvoidance(extras.drone_id, vector)
         result.payload = json.dumps(r).encode(encoding="utf-8")
         result_wrapper.results.append(result)
 
