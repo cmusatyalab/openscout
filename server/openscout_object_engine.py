@@ -103,10 +103,10 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
         # Establish parameters.
         EARTH_RADIUS = 6378137.0
         north_vec = np.array([0, 1, 0]) # Create a vector pointing due north.
-        if self.drone_type is 'anafi':
+        if self.drone_type == 'anafi':
             HFOV = 69 # Horizontal FOV An.
             VFOV = 43 # Vertical FOV.
-        elif self.dron_type is  'usa':
+        elif self.drone_type ==  'usa':
             HFOV = 69 # Horizontal FOV An.
             VFOV = 43 # Vertical FOV.
         else:
@@ -144,6 +144,19 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
                      "cls": cls, "confidence": conf, "link": link },
                 )
 
+    def passes_hsv_filter(self, image, bbox, hsv_min=[30,100,100], hsv_max=[50,255,255], threshold=1.0,) -> bool:
+        cropped = image[round(bbox[0]):round(bbox[2]), round(bbox[1]):round(bbox[3])]
+        hsv = cv2.cvtColor(cropped, cv2.COLOR_RGB2HSV)
+        lower_boundary = np.array(hsv_min)
+        upper_boundary = np.array(hsv_max)
+        mask = cv2.inRange(hsv, lower_boundary, upper_boundary)
+        final = cv2.bitwise_and(cropped, cropped, mask=mask)
+        path = self.storage_path + "/detected/hsv.jpg"
+        cv2.imwrite(path, final)
+        percent = round(np.count_nonzero(mask) / np.size(mask) * 100, 2)
+        logger.debug(f"HSV Filter Result: lower_bound:{hsv_min}, upper_bound:{hsv_max}, mask percentage:{percent}%")
+        return (percent >= threshold)
+
     def handle(self, input_frame):
         if input_frame.payload_type == gabriel_pb2.PayloadType.TEXT:
             #if the payload is TEXT, say from a CNC client, we ignore
@@ -159,8 +172,9 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
         extras = cognitive_engine.unpack_extras(cnc_pb2.Extras, input_frame)
 
         if extras.detection_model != '' and extras.detection_model != self.model:
-            if not os.path.exists('./model/'+ extras.detection_model):
-                logger.error(f"Model named {extras.detection_model} not found. Sticking with previous model.")
+            path = './model/'+ extras.detection_model + '.pt'
+            if not os.path.exists(path):
+                logger.error(f"Model {path} not found. Sticking with previous model.")
             else:
                 self.detector = PytorchPredictor(extras.detection_model, self.threshold)
                 self.model = extras.detection_model
@@ -195,7 +209,12 @@ class OpenScoutObjectEngine(cognitive_engine.Engine):
                         target_x_pix = int(((box[3] - box[1]) / 2.0) + box[1]) * image_np.shape[1]
                         target_y_pix = int(((box[2] - box[0]) / 2.0) + box[0]) * image_np.shape[0]
                         lat, lon = self.estimateGPS(extras.location.latitude, extras.location.longitude, extras.status.gimbal_pitch, extras.status.bearing*(180 /np.pi), extras.location.altitude, target_x_pix, target_y_pix )
-                        r.append({"id": i, "class": names[i], "score": scores[i], "lat": lat, "lon": lon, "box": box})
+                        hsv_filter = False
+                        if extras.HasField('lower_bound'):
+                            lower_bound = [extras.lower_bound.H, extras.lower_bound.S, extras.lower_bound.V]
+                            upper_bound = [extras.upper_bound.H, extras.upper_bound.S, extras.upper_bound.V]
+                            hsv_filter = self.passes_hsv_filter(image_np, box, lower_bound, upper_bound, threshold=1.5)
+                        r.append({"id": i, "class": names[i], "score": scores[i], "lat": lat, "lon": lon, "box": box, "hsv_filter": hsv_filter })
                         self.storeDetection(extras.drone_id, lat, lon, names[i],scores[i], os.environ["WEBSERVER"]+"/detected/"+filename if self.store_detections else "" )
 
             if detections_above_threshold:
