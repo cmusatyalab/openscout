@@ -5,3 +5,6 @@
 __pycache__/
 **/app/build/
 **/app/src/main/assets/
+./server/openscout-vol
+./server/model
+./server/models
