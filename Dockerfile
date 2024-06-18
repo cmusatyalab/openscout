@@ -34,7 +34,7 @@ RUN python3 -m pip install --no-cache-dir \
     pyzmq \
     'setuptools==41.0.0' \
     'websockets==8.0.0' \
-    zmq 
+    zmq
 
 #RUN git clone https://github.com/ultralytics/yolov5
 #RUN cd yolov5 && python3 -m pip install -r requirements.txt
@@ -48,10 +48,11 @@ RUN apt-get update && apt-get install -y \
 
 # You can speed up build slightly by reducing build context with
 #     git archive --format=tgz HEAD | docker build -t openscout -
+COPY server/requirements.txt .
+RUN python3 -m pip install -r requirements.txt
+
 COPY . openscout
 WORKDIR openscout/server
-
-RUN python3 -m pip install -r requirements.txt
 
 EXPOSE 5555 9099
 ENTRYPOINT ["./entrypoint.sh"]
